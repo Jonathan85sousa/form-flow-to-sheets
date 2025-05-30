@@ -234,7 +234,7 @@ const ChecklistForm = () => {
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex items-center gap-2"
             >
               <Send className="h-4 w-4" />
-              Enviar para Google Sheets
+              Enviar para Engenharia
             </Button>
           </div>
         </form>
