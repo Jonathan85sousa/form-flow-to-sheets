@@ -77,7 +77,7 @@ const ChecklistForm = () => {
   const generateGoogleSheetsUrl = (data: any) => {
     // Esta é a URL do seu Google Apps Script Web App
     // Substitua pela URL real do seu script
-    const scriptUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbzs1ALAsXQQCmshspZMZcHc_ktMHVR8IR9dZE-W3JK3_EWX-wbmU0Fn5NTuqu8ZyqOl/exec';
     
     const params = new URLSearchParams();
     params.append('data', JSON.stringify(data));
