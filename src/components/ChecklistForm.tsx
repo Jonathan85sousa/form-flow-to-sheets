@@ -47,7 +47,20 @@ const ChecklistForm = () => {
         { id: '2-5', code: '2.5', description: 'Barra roscadas tortas', evaluation: 'SIM', repair: 'SIM' },
         { id: '2-6', code: '2.6', description: 'Barra roscada com oxidação', evaluation: 'SIM', repair: 'SIM' },
       ]
+    },
+     {
+      id: '3',
+      name: 'DECK GARAPEIRA',
+      items: [
+        { id: '3-1', code: '3.1', description: 'Deck deteriorado', evaluation: 'SIM', repair: 'SIM' },
+        { id: '3-2', code: '3.2', description: 'Rachadura no Deck', evaluation: 'SIM', repair: 'SIM' },
+        { id: '3-3', code: '3.3', description: 'Presença de Cupins', evaluation: 'SIM', repair: 'SIM' },
+        { id: '3-4', code: '3.4', description: 'Pintura desgastada', evaluation: 'SIM', repair: 'SIM' },
+        { id: '3-5', code: '3.5', description: 'Barra roscadas tortas', evaluation: 'SIM', repair: 'SIM' },
+        { id: '3-6', code: '3.6', description: 'Barra roscada com oxidação', evaluation: 'SIM', repair: 'SIM' },
+      ]
     }
+    
   ]);
   const [signature, setSignature] = useState<string>('');
 
