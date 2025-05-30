@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -95,22 +94,34 @@ const ChecklistForm = () => {
       timestamp: new Date().toISOString()
     };
 
+    console.log('Enviando dados para Google Sheets:', formData);
+
     try {
-      // Enviar para Google Sheets
-      const url = generateGoogleSheetsUrl(formData);
+      // URL do seu Google Apps Script Web App
+      // SUBSTITUA pela URL real do seu script
+      const scriptUrl = 'https://script.google.com/macros/s/SEU_SCRIPT_ID_AQUI/exec';
       
-      // Método usando fetch para enviar os dados
-      const response = await fetch(url, {
-        method: 'GET',
+      // Criar FormData para envio
+      const formDataToSend = new FormData();
+      formDataToSend.append('data', JSON.stringify(formData));
+
+      console.log('URL do script:', scriptUrl);
+      console.log('Dados sendo enviados:', JSON.stringify(formData));
+
+      // Enviar para Google Sheets usando POST
+      const response = await fetch(scriptUrl, {
+        method: 'POST',
+        body: formDataToSend,
         mode: 'no-cors'
       });
 
+      console.log('Resposta do Google Apps Script:', response);
+      
       toast.success('Formulário enviado com sucesso para o Google Sheets!');
-      console.log('Dados enviados:', formData);
       
     } catch (error) {
-      console.error('Erro ao enviar:', error);
-      toast.error('Erro ao enviar formulário. Tente novamente.');
+      console.error('Erro ao enviar para Google Sheets:', error);
+      toast.error('Erro ao enviar formulário. Verifique a URL do script e tente novamente.');
     }
   };
 
