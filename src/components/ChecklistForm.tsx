@@ -280,7 +280,7 @@ const ChecklistForm = () => {
                 value={observation}
                 onChange={(e) => setObservation(e.target.value)}
                 className="mt-1"
-                placeholder="Digite observações importantes..."
+                placeholder="Digite os materiais ultilizados nos reparos..."
                 rows={4}
               />
             </div>
