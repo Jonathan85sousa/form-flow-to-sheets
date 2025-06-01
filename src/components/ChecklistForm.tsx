@@ -35,7 +35,7 @@ const ChecklistForm = () => {
       id: '1',
       name: 'POSTES',
       items: [
-        { id: '1-1', code: '1.1', description: 'Poste deteriorado', evaluation: 'SIM', repair: 'SIM' },
+        { id: '1-1', code: '1.1', description: 'Poste deteriorado', evaluation: 'NÃO', repair: 'NÃO' },
         { id: '1-2', code: '1.2', description: 'Presença de Cupins', evaluation: 'SIM', repair: 'SIM' },
         { id: '1-3', code: '1.3', description: 'Rachadura no Poste', evaluation: 'SIM', repair: 'SIM' },
         { id: '1-4', code: '1.4', description: 'Poste com desgaste', evaluation: 'SIM', repair: 'SIM' },
