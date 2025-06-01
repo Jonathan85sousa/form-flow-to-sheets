@@ -39,18 +39,40 @@ function handleRequest(e) {
     const doc = DocumentApp.create(docName);
     const body = doc.getBody();
     
-    // Configurar estilos
+    // Configurar estilos - Personalize as cores aqui
     const titleStyle = {};
     titleStyle[DocumentApp.Attribute.FONT_SIZE] = 18;
     titleStyle[DocumentApp.Attribute.BOLD] = true;
     titleStyle[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
+    titleStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#2563eb'; // Azul - altere aqui
     
     const headerStyle = {};
     headerStyle[DocumentApp.Attribute.FONT_SIZE] = 14;
     headerStyle[DocumentApp.Attribute.BOLD] = true;
+    headerStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#1e40af'; // Azul escuro - altere aqui
     
     const normalStyle = {};
     normalStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+    normalStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#374151'; // Cinza escuro - altere aqui
+    
+    // CONFIGURAÇÃO DA LOGO
+    // Substitua 'SEU_ID_DA_LOGO_AQUI' pelo ID da sua imagem no Google Drive
+    // Para obter o ID: Faça upload da logo no Drive > Abra a imagem > Copie o ID da URL
+    const logoId = 'SEU_ID_DA_LOGO_AQUI'; // SUBSTITUA AQUI
+    
+    try {
+      if (logoId && logoId !== 'SEU_ID_DA_LOGO_AQUI') {
+        const logoFile = DriveApp.getFileById(logoId);
+        const logoBlob = logoFile.getBlob();
+        const logoImage = body.appendImage(logoBlob);
+        logoImage.setWidth(150);
+        logoImage.setHeight(100);
+        body.appendParagraph(''); // Espaço após a logo
+      }
+    } catch (logoError) {
+      console.log('Erro ao inserir logo (ignorado):', logoError);
+      // Continua sem a logo se houver erro
+    }
     
     // Adicionar título
     const title = body.appendParagraph('CHECKLIST DE PLATAFORMA DE LANÇAMENTO');
