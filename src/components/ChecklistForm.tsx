@@ -116,7 +116,7 @@ const ChecklistForm = () => {
 
     try {
       // IMPORTANTE: Substitua pela sua URL do Google Apps Script
-      const scriptUrl = 'https://script.google.com/macros/s/SEU_SCRIPT_ID_AQUI/exec';
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ztoVq9dRyw7R4iQxmQqT3qcwVcjCmbUQvtxUNaHMgtBhYNAeaNWshRn9WMkWGLZT/exec';
       
       console.log('URL do script:', scriptUrl);
       console.log('Dados sendo enviados:', JSON.stringify(formData));
