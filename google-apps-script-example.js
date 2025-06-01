@@ -130,7 +130,7 @@ function handleRequest(e) {
     
     // Adicionar observação se existir
     if (data.observation && data.observation.trim()) {
-      const obsHeader = body.appendParagraph('OBSERVAÇÃO');
+      const obsHeader = body.appendParagraph('MATERIAIS ULTILIZADOS NOS REPAROS');
       obsHeader.setAttributes(headerStyle);
       body.appendParagraph(data.observation).setAttributes(normalStyle);
       body.appendParagraph(''); // Linha em branco
