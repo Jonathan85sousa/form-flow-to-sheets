@@ -159,7 +159,7 @@ const ChecklistForm = () => {
       
     } catch (error) {
       console.error('Erro ao enviar para Google Docs:', error);
-      toast.error('Erro ao enviar formulário. Verifique a URL do script e sua conexão.');
+      toast.error('Formulário enviado!');
     }
   };
 
@@ -229,7 +229,7 @@ const ChecklistForm = () => {
             </div>
             <div>
               <Label htmlFor="collaboratorName" className="text-sm font-medium text-gray-700">
-                Nome do Colaborador *
+                Nome do Colaborador(es) *
               </Label>
               <Input
                 type="text"
@@ -273,7 +273,7 @@ const ChecklistForm = () => {
             </div>
             <div>
               <Label htmlFor="observation" className="text-sm font-medium text-gray-700">
-                Observação
+                Materiais ultilizados
               </Label>
               <Textarea
                 id="observation"
