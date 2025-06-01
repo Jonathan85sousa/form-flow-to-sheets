@@ -94,7 +94,7 @@ const ChecklistForm = () => {
   const generateGoogleSheetsUrl = (data: any) => {
     // Esta é a URL do seu Google Apps Script Web App
     // Substitua pela URL real do seu script
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbzLqYj93bizgpCZKMKDdHs7n0GflUOmfAVW3amdKKbSjpMP2SeuQQl6e4mSHrudU69i/exec';
+    const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ztoVq9dRyw7R4iQxmQqT3qcwVcjCmbUQvtxUNaHMgtBhYNAeaNWshRn9WMkWGLZT/exec';
     
     const params = new URLSearchParams();
     params.append('data', JSON.stringify(data));
@@ -121,7 +121,7 @@ const ChecklistForm = () => {
 
     try {
       // URL do seu Google Apps Script Web App
-      const scriptUrl = 'https://script.google.com/macros/s/AKfycbzLqYj93bizgpCZKMKDdHs7n0GflUOmfAVW3amdKKbSjpMP2SeuQQl6e4mSHrudU69i/exec';
+      const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ztoVq9dRyw7R4iQxmQqT3qcwVcjCmbUQvtxUNaHMgtBhYNAeaNWshRn9WMkWGLZT/exec';
       
       // Preparar os dados para envio via GET
       const params = new URLSearchParams();
