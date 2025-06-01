@@ -13,20 +13,32 @@ function doPost(e) {
 function handleRequest(e) {
   try {
     console.log('Parâmetros recebidos:', e);
+    console.log('Tipo de request:', e.parameter ? 'GET' : 'POST');
     
     let data;
     
-    // Tentar obter dados do GET primeiro, depois do POST
-    if (e.parameter && e.parameter.data) {
+    // Tentar obter dados do POST primeiro, depois do GET
+    if (e.postData && e.postData.contents) {
+      console.log('Dados POST recebidos:', e.postData.contents);
+      
+      // Se for FormData, extrair o campo 'data'
+      if (e.postData.type === 'application/x-www-form-urlencoded') {
+        const params = new URLSearchParams(e.postData.contents);
+        const dataParam = params.get('data');
+        if (dataParam) {
+          data = JSON.parse(dataParam);
+        }
+      } else {
+        // Se for JSON direto
+        data = JSON.parse(e.postData.contents);
+      }
+    } else if (e.parameter && e.parameter.data) {
       console.log('Dados GET recebidos:', e.parameter.data);
       data = JSON.parse(e.parameter.data);
-    } else if (e.postData && e.postData.contents) {
-      console.log('Dados POST recebidos:', e.postData.contents);
-      data = JSON.parse(e.postData.contents);
     }
     
     if (!data) {
-      throw new Error('Nenhum dado foi recebido');
+      throw new Error('Nenhum dado foi recebido. Verifique o envio dos dados.');
     }
     
     console.log('Dados processados:', data);
@@ -39,26 +51,37 @@ function handleRequest(e) {
     const doc = DocumentApp.create(docName);
     const body = doc.getBody();
     
-    // Configurar estilos - Personalize as cores aqui
+    // CONFIGURAÇÃO DAS CORES - ALTERE AQUI
+    const primaryColor = '#2563eb';    // Azul principal - ALTERE AQUI
+    const secondaryColor = '#1e40af';  // Azul escuro - ALTERE AQUI
+    const textColor = '#374151';       // Cinza escuro - ALTERE AQUI
+    const accentColor = '#3b82f6';     // Azul médio - ALTERE AQUI
+    
+    // Configurar estilos com suas cores personalizadas
     const titleStyle = {};
     titleStyle[DocumentApp.Attribute.FONT_SIZE] = 18;
     titleStyle[DocumentApp.Attribute.BOLD] = true;
     titleStyle[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
-    titleStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#2563eb'; // Azul - altere aqui
+    titleStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = primaryColor;
     
     const headerStyle = {};
     headerStyle[DocumentApp.Attribute.FONT_SIZE] = 14;
     headerStyle[DocumentApp.Attribute.BOLD] = true;
-    headerStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#1e40af'; // Azul escuro - altere aqui
+    headerStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = secondaryColor;
     
     const normalStyle = {};
     normalStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
-    normalStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#374151'; // Cinza escuro - altere aqui
+    normalStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = textColor;
     
-    // CONFIGURAÇÃO DA LOGO
-    // Substitua 'SEU_ID_DA_LOGO_AQUI' pelo ID da sua imagem no Google Drive
+    const accentStyle = {};
+    accentStyle[DocumentApp.Attribute.FONT_SIZE] = 12;
+    accentStyle[DocumentApp.Attribute.BOLD] = true;
+    accentStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = accentColor;
+    
+    // CONFIGURAÇÃO DA LOGO DA SUA EMPRESA
+    // Substitua 'SEU_ID_DA_LOGO_AQUI' pelo ID da sua logo no Google Drive
     // Para obter o ID: Faça upload da logo no Drive > Abra a imagem > Copie o ID da URL
-    const logoId = 'SEU_ID_DA_LOGO_AQUI'; // SUBSTITUA AQUI
+    const logoId = 'SEU_ID_DA_LOGO_AQUI'; // SUBSTITUA AQUI PELO ID DA SUA LOGO
     
     try {
       if (logoId && logoId !== 'SEU_ID_DA_LOGO_AQUI') {
@@ -67,6 +90,11 @@ function handleRequest(e) {
         const logoImage = body.appendImage(logoBlob);
         logoImage.setWidth(150);
         logoImage.setHeight(100);
+        
+        // Centralizar a logo
+        const logoParagraph = body.getChild(body.getNumChildren() - 1).getParent();
+        logoParagraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        
         body.appendParagraph(''); // Espaço após a logo
       }
     } catch (logoError) {
@@ -117,7 +145,7 @@ function handleRequest(e) {
       data.categories.forEach((category, categoryIndex) => {
         // Adicionar nome da categoria
         const categoryHeader = body.appendParagraph(`${categoryIndex + 1}. ${category.name}`);
-        categoryHeader.setAttributes(headerStyle);
+        categoryHeader.setAttributes(accentStyle);
         
         // Processar todos os itens da categoria
         if (category.items && Array.isArray(category.items)) {
@@ -136,6 +164,13 @@ function handleRequest(e) {
             body.appendParagraph(''); // Linha em branco entre itens
           });
         }
+        
+        // Adicionar qualquer campo adicional que possa existir na categoria
+        Object.keys(category).forEach(key => {
+          if (!['id', 'name', 'items'].includes(key)) {
+            body.appendParagraph(`   Campo adicional - ${key}: ${category[key]}`).setAttributes(normalStyle);
+          }
+        });
         
         body.appendParagraph(''); // Linha em branco entre categorias
       });
@@ -161,7 +196,7 @@ function handleRequest(e) {
           image.setWidth(300);
           image.setHeight(150);
           
-          body.appendParagraph('Documento assinado digitalmente.').setAttributes(normalStyle);
+          body.appendParagraph('Documento assinado digitalmente.').setAttributes(accentStyle);
         } else {
           body.appendParagraph('Assinatura digital presente (formato não suportado para exibição).').setAttributes(normalStyle);
         }
@@ -193,11 +228,11 @@ function handleRequest(e) {
       body.appendParagraph('Nenhum campo adicional encontrado.').setAttributes(normalStyle);
     }
     
-    // Adicionar rodapé
+    // Adicionar rodapé com suas cores
     body.appendParagraph(''); // Linha em branco
     body.appendParagraph('________________________________').setAttributes(normalStyle);
     body.appendParagraph(`Documento gerado automaticamente em: ${new Date().toLocaleString('pt-BR')}`).setAttributes(normalStyle);
-    body.appendParagraph('Sistema de Checklist - Plataforma de Lançamento MSV').setAttributes(normalStyle);
+    body.appendParagraph('Sistema de Checklist - Plataforma de Lançamento').setAttributes(accentStyle);
     
     // Salvar o documento
     doc.saveAndClose();
@@ -234,10 +269,10 @@ function handleRequest(e) {
   } catch (error) {
     console.error('Erro no script:', error);
     
-    // Retornar erro
+    // Retornar erro detalhado
     const errorResponse = {
       status: 'error',
-      message: error.toString(),
+      message: `Erro no processamento: ${error.toString()}`,
       details: error.stack || '',
       timestamp: new Date().toISOString()
     };
@@ -253,7 +288,7 @@ function handleRequest(e) {
   }
 }
 
-// Função auxiliar para testar o script
+// Função auxiliar para testar o script localmente
 function testScript() {
   const testData = {
     date: '2024-01-15',
@@ -282,13 +317,43 @@ function testScript() {
   };
   
   const mockRequest = {
-    parameter: {
-      data: JSON.stringify(testData)
+    postData: {
+      contents: `data=${encodeURIComponent(JSON.stringify(testData))}`,
+      type: 'application/x-www-form-urlencoded'
     }
   };
   
   const result = handleRequest(mockRequest);
   console.log('Resultado do teste:', result.getContent());
+}
+
+// Função para configurar cores personalizadas
+function setCustomColors() {
+  // INSTRUÇÕES PARA PERSONALIZAR AS CORES:
+  // 1. Localize as variáveis de cor no início da função handleRequest
+  // 2. Altere os valores hexadecimais das cores:
+  //    - primaryColor: '#2563eb'    // Cor principal (títulos)
+  //    - secondaryColor: '#1e40af'  // Cor secundária (cabeçalhos)
+  //    - textColor: '#374151'       // Cor do texto normal
+  //    - accentColor: '#3b82f6'     // Cor de destaque
+  //
+  // EXEMPLOS DE CORES:
+  // Azul: #2563eb, Verde: #10b981, Vermelho: #ef4444
+  // Roxo: #8b5cf6, Laranja: #f59e0b, Rosa: #ec4899
+  
+  console.log('Para personalizar as cores, edite as variáveis de cor na função handleRequest');
+}
+
+// Função para configurar a logo da empresa
+function setCompanyLogo() {
+  // INSTRUÇÕES PARA ADICIONAR SUA LOGO:
+  // 1. Faça upload da sua logo para o Google Drive
+  // 2. Abra a imagem no Drive
+  // 3. Copie o ID da URL (a parte após /d/ e antes de /view)
+  // 4. Substitua 'SEU_ID_DA_LOGO_AQUI' pelo ID copiado
+  // 5. A logo aparecerá no topo do documento
+  
+  console.log('Para adicionar sua logo, substitua SEU_ID_DA_LOGO_AQUI pelo ID da imagem no Google Drive');
 }
 
 // Função para listar documentos criados (opcional)

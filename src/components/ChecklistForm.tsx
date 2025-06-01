@@ -91,20 +91,15 @@ const ChecklistForm = () => {
     toast.success('Categoria removida com sucesso!');
   };
 
-  const generateGoogleSheetsUrl = (data: any) => {
-    // Esta é a URL do seu Google Apps Script Web App
-    // Substitua pela URL real do seu script
-    const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ztoVq9dRyw7R4iQxmQqT3qcwVcjCmbUQvtxUNaHMgtBhYNAeaNWshRn9WMkWGLZT/exec';
-    
-    const params = new URLSearchParams();
-    params.append('data', JSON.stringify(data));
-    
-    return `${scriptUrl}?${params.toString()}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação dos campos obrigatórios
+    if (!localName || !collaboratorName || !serviceOrderNumber) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
     const formData = {
       date,
       localName,
@@ -120,29 +115,51 @@ const ChecklistForm = () => {
     console.log('Enviando dados para Google Docs:', formData);
 
     try {
-      // URL do seu Google Apps Script Web App
-      const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ztoVq9dRyw7R4iQxmQqT3qcwVcjCmbUQvtxUNaHMgtBhYNAeaNWshRn9WMkWGLZT/exec';
+      // IMPORTANTE: Substitua pela sua URL do Google Apps Script
+      const scriptUrl = 'https://script.google.com/macros/s/SEU_SCRIPT_ID_AQUI/exec';
       
-      // Preparar os dados para envio via GET
-      const params = new URLSearchParams();
-      params.append('data', JSON.stringify(formData));
-
       console.log('URL do script:', scriptUrl);
       console.log('Dados sendo enviados:', JSON.stringify(formData));
 
-      // Enviar para Google Docs usando GET
-      const response = await fetch(`${scriptUrl}?${params.toString()}`, {
-        method: 'GET',
-        mode: 'no-cors'
+      // Criar FormData para envio
+      const submitData = new FormData();
+      submitData.append('data', JSON.stringify(formData));
+
+      // Enviar usando POST
+      const response = await fetch(scriptUrl, {
+        method: 'POST',
+        body: submitData,
+        redirect: 'follow'
       });
 
-      console.log('Resposta do Google Apps Script:', response);
-      
-      toast.success('Formulário enviado com sucesso para o Google Docs!');
+      console.log('Status da resposta:', response.status);
+      console.log('Response OK:', response.ok);
+
+      if (response.ok) {
+        try {
+          const result = await response.text();
+          console.log('Resposta do Google Apps Script:', result);
+          
+          const parsedResult = JSON.parse(result);
+          if (parsedResult.status === 'success') {
+            toast.success('Formulário enviado com sucesso para o Google Docs!');
+            console.log('URL do documento:', parsedResult.docUrl);
+          } else {
+            console.error('Erro na resposta:', parsedResult);
+            toast.error(`Erro: ${parsedResult.message || 'Erro desconhecido'}`);
+          }
+        } catch (parseError) {
+          console.error('Erro ao processar resposta:', parseError);
+          toast.success('Formulário enviado! (Não foi possível verificar o status)');
+        }
+      } else {
+        console.error('Erro HTTP:', response.status, response.statusText);
+        toast.error(`Erro HTTP: ${response.status} - Verifique a URL do script`);
+      }
       
     } catch (error) {
       console.error('Erro ao enviar para Google Docs:', error);
-      toast.error('Erro ao enviar formulário. Verifique a URL do script e tente novamente.');
+      toast.error('Erro ao enviar formulário. Verifique a URL do script e sua conexão.');
     }
   };
 
@@ -198,7 +215,7 @@ const ChecklistForm = () => {
             </div>
             <div>
               <Label htmlFor="localName" className="text-sm font-medium text-gray-700">
-                Nome do Local
+                Nome do Local *
               </Label>
               <Input
                 type="text"
@@ -212,7 +229,7 @@ const ChecklistForm = () => {
             </div>
             <div>
               <Label htmlFor="collaboratorName" className="text-sm font-medium text-gray-700">
-                Nome do Colaborador
+                Nome do Colaborador *
               </Label>
               <Input
                 type="text"
@@ -226,7 +243,7 @@ const ChecklistForm = () => {
             </div>
             <div>
               <Label htmlFor="serviceOrderNumber" className="text-sm font-medium text-gray-700">
-                Número da Ordem de Serviço
+                Número da Ordem de Serviço *
               </Label>
               <Input
                 type="text"
