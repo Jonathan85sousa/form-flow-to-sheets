@@ -1,6 +1,6 @@
 
 // Cole este código no Google Apps Script (script.google.com)
-// Este arquivo é apenas para referência - não será usado na aplicação React
+// Este script cria automaticamente um Google Doc e salva todos os dados do formulário
 
 function doGet(e) {
   return handleRequest(e);
@@ -16,20 +16,13 @@ function handleRequest(e) {
     
     let data;
     
-    // Tentar obter dados do POST primeiro, depois do GET
-    if (e.postData && e.postData.contents) {
-      console.log('Dados POST recebidos:', e.postData.contents);
-      const formData = e.postData.contents.split('&');
-      for (let pair of formData) {
-        const [key, value] = pair.split('=');
-        if (key === 'data') {
-          data = JSON.parse(decodeURIComponent(value));
-          break;
-        }
-      }
-    } else if (e.parameter && e.parameter.data) {
+    // Tentar obter dados do GET primeiro, depois do POST
+    if (e.parameter && e.parameter.data) {
       console.log('Dados GET recebidos:', e.parameter.data);
       data = JSON.parse(e.parameter.data);
+    } else if (e.postData && e.postData.contents) {
+      console.log('Dados POST recebidos:', e.postData.contents);
+      data = JSON.parse(e.postData.contents);
     }
     
     if (!data) {
@@ -38,109 +31,260 @@ function handleRequest(e) {
     
     console.log('Dados processados:', data);
     
-    // ID da sua planilha do Google Sheets
-    const SHEET_ID = 'SEU_ID_DA_PLANILHA_AQUI'; // Substitua pelo ID real
+    // Criar um novo Google Doc automaticamente
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const docName = `Checklist_${data.localName || 'Local'}_${data.date}_${timestamp}`;
     
-    // Abrir a planilha
-    const ss = SpreadsheetApp.openById(SHEET_ID);
-    let sheet = ss.getSheetByName('Checklist');
+    // Criar o documento
+    const doc = DocumentApp.create(docName);
+    const body = doc.getBody();
     
-    // Criar a aba se não existir
-    if (!sheet) {
-      sheet = ss.insertSheet('Checklist');
-      
-      // Adicionar cabeçalhos
-      const headers = [
-        'Data', 'Timestamp', 'Categoria', 'Código', 
-        'Descrição', 'Avaliação', 'Reparo', 'Assinatura'
-      ];
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      
-      // Formatar cabeçalhos
-      sheet.getRange(1, 1, 1, headers.length)
-           .setBackground('#4285f4')
-           .setFontColor('white')
-           .setFontWeight('bold');
+    // Configurar estilos
+    const titleStyle = {};
+    titleStyle[DocumentApp.Attribute.FONT_SIZE] = 18;
+    titleStyle[DocumentApp.Attribute.BOLD] = true;
+    titleStyle[DocumentApp.Attribute.HORIZONTAL_ALIGNMENT] = DocumentApp.HorizontalAlignment.CENTER;
+    
+    const headerStyle = {};
+    headerStyle[DocumentApp.Attribute.FONT_SIZE] = 14;
+    headerStyle[DocumentApp.Attribute.BOLD] = true;
+    
+    const normalStyle = {};
+    normalStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+    
+    // Adicionar título
+    const title = body.appendParagraph('CHECKLIST DE PLATAFORMA DE LANÇAMENTO');
+    title.setAttributes(titleStyle);
+    
+    body.appendParagraph(''); // Linha em branco
+    
+    // Adicionar informações gerais
+    const infoHeader = body.appendParagraph('INFORMAÇÕES GERAIS');
+    infoHeader.setAttributes(headerStyle);
+    
+    body.appendParagraph(`Data da Inspeção: ${data.date || 'N/A'}`).setAttributes(normalStyle);
+    body.appendParagraph(`Nome do Local: ${data.localName || 'N/A'}`).setAttributes(normalStyle);
+    body.appendParagraph(`Nome do Colaborador: ${data.collaboratorName || 'N/A'}`).setAttributes(normalStyle);
+    body.appendParagraph(`Número da Ordem de Serviço: ${data.serviceOrderNumber || 'N/A'}`).setAttributes(normalStyle);
+    body.appendParagraph(`Timestamp: ${data.timestamp || 'N/A'}`).setAttributes(normalStyle);
+    
+    body.appendParagraph(''); // Linha em branco
+    
+    // Adicionar descrição se existir
+    if (data.description && data.description.trim()) {
+      const descHeader = body.appendParagraph('DESCRIÇÃO');
+      descHeader.setAttributes(headerStyle);
+      body.appendParagraph(data.description).setAttributes(normalStyle);
+      body.appendParagraph(''); // Linha em branco
     }
     
-    // Preparar os dados para inserção
-    const rows = [];
+    // Adicionar observação se existir
+    if (data.observation && data.observation.trim()) {
+      const obsHeader = body.appendParagraph('OBSERVAÇÃO');
+      obsHeader.setAttributes(headerStyle);
+      body.appendParagraph(data.observation).setAttributes(normalStyle);
+      body.appendParagraph(''); // Linha em branco
+    }
     
-    data.categories.forEach(category => {
-      category.items.forEach(item => {
-        rows.push([
-          data.date,
-          data.timestamp,
-          category.name,
-          item.code,
-          item.description,
-          item.evaluation,
-          item.repair,
-          data.signature ? 'Assinado' : 'Não assinado'
-        ]);
+    // Processar todas as categorias dinamicamente
+    if (data.categories && Array.isArray(data.categories)) {
+      const categoriesHeader = body.appendParagraph('ITENS DE VERIFICAÇÃO');
+      categoriesHeader.setAttributes(headerStyle);
+      body.appendParagraph(''); // Linha em branco
+      
+      data.categories.forEach((category, categoryIndex) => {
+        // Adicionar nome da categoria
+        const categoryHeader = body.appendParagraph(`${categoryIndex + 1}. ${category.name}`);
+        categoryHeader.setAttributes(headerStyle);
+        
+        // Processar todos os itens da categoria
+        if (category.items && Array.isArray(category.items)) {
+          category.items.forEach((item, itemIndex) => {
+            body.appendParagraph(`   ${item.code || `${categoryIndex + 1}.${itemIndex + 1}`} - ${item.description}`).setAttributes(normalStyle);
+            body.appendParagraph(`       Avaliação: ${item.evaluation || 'N/A'}`).setAttributes(normalStyle);
+            body.appendParagraph(`       Reparo: ${item.repair || 'N/A'}`).setAttributes(normalStyle);
+            
+            // Adicionar qualquer campo adicional que possa existir no item
+            Object.keys(item).forEach(key => {
+              if (!['id', 'code', 'description', 'evaluation', 'repair'].includes(key)) {
+                body.appendParagraph(`       ${key}: ${item[key]}`).setAttributes(normalStyle);
+              }
+            });
+            
+            body.appendParagraph(''); // Linha em branco entre itens
+          });
+        }
+        
+        body.appendParagraph(''); // Linha em branco entre categorias
       });
+    }
+    
+    // Processar assinatura digital
+    if (data.signature && data.signature.trim()) {
+      const sigHeader = body.appendParagraph('ASSINATURA DIGITAL');
+      sigHeader.setAttributes(headerStyle);
+      
+      try {
+        // Converter base64 para blob e inserir como imagem
+        if (data.signature.startsWith('data:image/')) {
+          const base64Data = data.signature.split(',')[1];
+          const imageBlob = Utilities.newBlob(
+            Utilities.base64Decode(base64Data),
+            'image/png',
+            'assinatura.png'
+          );
+          
+          // Inserir a imagem no documento
+          const image = body.appendImage(imageBlob);
+          image.setWidth(300);
+          image.setHeight(150);
+          
+          body.appendParagraph('Documento assinado digitalmente.').setAttributes(normalStyle);
+        } else {
+          body.appendParagraph('Assinatura digital presente (formato não suportado para exibição).').setAttributes(normalStyle);
+        }
+      } catch (imageError) {
+        console.error('Erro ao processar assinatura:', imageError);
+        body.appendParagraph('Documento assinado digitalmente (erro ao exibir imagem).').setAttributes(normalStyle);
+      }
+    } else {
+      const sigHeader = body.appendParagraph('ASSINATURA DIGITAL');
+      sigHeader.setAttributes(headerStyle);
+      body.appendParagraph('Documento não foi assinado.').setAttributes(normalStyle);
+    }
+    
+    body.appendParagraph(''); // Linha em branco
+    
+    // Adicionar campos adicionais dinâmicos
+    const additionalFields = body.appendParagraph('CAMPOS ADICIONAIS');
+    additionalFields.setAttributes(headerStyle);
+    
+    let hasAdditionalFields = false;
+    Object.keys(data).forEach(key => {
+      if (!['date', 'localName', 'collaboratorName', 'serviceOrderNumber', 'description', 'observation', 'timestamp', 'categories', 'signature'].includes(key)) {
+        body.appendParagraph(`${key}: ${JSON.stringify(data[key])}`).setAttributes(normalStyle);
+        hasAdditionalFields = true;
+      }
     });
     
-    console.log('Linhas a serem inseridas:', rows.length);
-    
-    // Inserir os dados na planilha
-    if (rows.length > 0) {
-      const startRow = sheet.getLastRow() + 1;
-      sheet.getRange(startRow, 1, rows.length, 8).setValues(rows);
-      console.log('Dados inseridos com sucesso na linha:', startRow);
+    if (!hasAdditionalFields) {
+      body.appendParagraph('Nenhum campo adicional encontrado.').setAttributes(normalStyle);
     }
     
+    // Adicionar rodapé
+    body.appendParagraph(''); // Linha em branco
+    body.appendParagraph('________________________________').setAttributes(normalStyle);
+    body.appendParagraph(`Documento gerado automaticamente em: ${new Date().toLocaleString('pt-BR')}`).setAttributes(normalStyle);
+    body.appendParagraph('Sistema de Checklist - Plataforma de Lançamento MSV').setAttributes(normalStyle);
+    
+    // Salvar o documento
+    doc.saveAndClose();
+    
+    // Obter URL do documento
+    const docUrl = doc.getUrl();
+    const docId = doc.getId();
+    
+    console.log('Documento criado com sucesso:', docUrl);
+    
     // Retornar sucesso
+    const response = {
+      status: 'success',
+      message: 'Dados salvos com sucesso no Google Docs',
+      docUrl: docUrl,
+      docId: docId,
+      docName: docName,
+      localName: data.localName,
+      collaboratorName: data.collaboratorName,
+      serviceOrderNumber: data.serviceOrderNumber,
+      hasSignature: !!data.signature,
+      timestamp: new Date().toISOString()
+    };
+    
     return ContentService
-      .createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Dados salvos com sucesso',
-        rowsAdded: rows.length,
-        timestamp: new Date().toISOString()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .createTextOutput(JSON.stringify(response))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
       
   } catch (error) {
     console.error('Erro no script:', error);
     
     // Retornar erro
+    const errorResponse = {
+      status: 'error',
+      message: error.toString(),
+      details: error.stack || '',
+      timestamp: new Date().toISOString()
+    };
+    
     return ContentService
-      .createTextOutput(JSON.stringify({
-        status: 'error',
-        message: error.toString(),
-        timestamp: new Date().toISOString()
-      }))
-      .setMimeType(ContentService.MimeType.JSON);
+      .createTextOutput(JSON.stringify(errorResponse))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      });
   }
 }
 
 // Função auxiliar para testar o script
 function testScript() {
   const testData = {
-    postData: {
-      contents: 'data=' + encodeURIComponent(JSON.stringify({
-        date: '2024-01-15',
-        timestamp: new Date().toISOString(),
-        categories: [
+    date: '2024-01-15',
+    localName: 'Plataforma Norte',
+    collaboratorName: 'João Silva',
+    serviceOrderNumber: 'OS-2024-001',
+    description: 'Inspeção de rotina da plataforma de lançamento',
+    observation: 'Encontradas algumas irregularidades que necessitam reparo',
+    timestamp: new Date().toISOString(),
+    categories: [
+      {
+        id: '1',
+        name: 'POSTES',
+        items: [
           {
-            id: '1',
-            name: 'TESTE',
-            items: [
-              {
-                id: '1-1',
-                code: '1.1',
-                description: 'Item de teste',
-                evaluation: 'SIM',
-                repair: 'NÃO'
-              }
-            ]
+            id: '1-1',
+            code: '1.1',
+            description: 'Poste deteriorado',
+            evaluation: 'SIM',
+            repair: 'SIM'
           }
-        ],
-        signature: 'data:image/png;base64,test'
-      }))
+        ]
+      }
+    ],
+    signature: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+  };
+  
+  const mockRequest = {
+    parameter: {
+      data: JSON.stringify(testData)
     }
   };
   
-  const result = handleRequest(testData);
+  const result = handleRequest(mockRequest);
   console.log('Resultado do teste:', result.getContent());
+}
+
+// Função para listar documentos criados (opcional)
+function listCreatedDocs() {
+  const files = DriveApp.getFilesByType(MimeType.GOOGLE_DOCS);
+  const docs = [];
+  
+  while (files.hasNext()) {
+    const file = files.next();
+    if (file.getName().includes('Checklist_')) {
+      docs.push({
+        name: file.getName(),
+        url: file.getUrl(),
+        created: file.getDateCreated()
+      });
+    }
+  }
+  
+  console.log('Documentos encontrados:', docs);
+  return docs;
 }

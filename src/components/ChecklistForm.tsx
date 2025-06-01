@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
 import CategorySection from './CategorySection';
 import SignatureCanvas from './SignatureCanvas';
 import { Plus, Send, Download } from 'lucide-react';
@@ -24,6 +25,11 @@ interface Category {
 
 const ChecklistForm = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [localName, setLocalName] = useState('');
+  const [collaboratorName, setCollaboratorName] = useState('');
+  const [serviceOrderNumber, setServiceOrderNumber] = useState('');
+  const [description, setDescription] = useState('');
+  const [observation, setObservation] = useState('');
   const [categories, setCategories] = useState<Category[]>([
     {
       id: '1',
@@ -60,7 +66,6 @@ const ChecklistForm = () => {
         { id: '3-6', code: '3.6', description: 'Barra roscada com oxidação', evaluation: 'SIM', repair: 'SIM' },
       ]
     }
-    
   ]);
   const [signature, setSignature] = useState<string>('');
 
@@ -102,38 +107,41 @@ const ChecklistForm = () => {
     
     const formData = {
       date,
+      localName,
+      collaboratorName,
+      serviceOrderNumber,
+      description,
+      observation,
       categories,
       signature,
       timestamp: new Date().toISOString()
     };
 
-    console.log('Enviando dados para Google Sheets:', formData);
+    console.log('Enviando dados para Google Docs:', formData);
 
     try {
       // URL do seu Google Apps Script Web App
-      // SUBSTITUA pela URL real do seu script
       const scriptUrl = 'https://script.google.com/macros/s/AKfycbzLqYj93bizgpCZKMKDdHs7n0GflUOmfAVW3amdKKbSjpMP2SeuQQl6e4mSHrudU69i/exec';
       
-      // Criar FormData para envio
-      const formDataToSend = new FormData();
-      formDataToSend.append('data', JSON.stringify(formData));
+      // Preparar os dados para envio via GET
+      const params = new URLSearchParams();
+      params.append('data', JSON.stringify(formData));
 
       console.log('URL do script:', scriptUrl);
       console.log('Dados sendo enviados:', JSON.stringify(formData));
 
-      // Enviar para Google Sheets usando POST
-      const response = await fetch(scriptUrl, {
-        method: 'POST',
-        body: formDataToSend,
+      // Enviar para Google Docs usando GET
+      const response = await fetch(`${scriptUrl}?${params.toString()}`, {
+        method: 'GET',
         mode: 'no-cors'
       });
 
       console.log('Resposta do Google Apps Script:', response);
       
-      toast.success('Formulário enviado com sucesso para o Google Sheets!');
+      toast.success('Formulário enviado com sucesso para o Google Docs!');
       
     } catch (error) {
-      console.error('Erro ao enviar para Google Sheets:', error);
+      console.error('Erro ao enviar para Google Docs:', error);
       toast.error('Erro ao enviar formulário. Verifique a URL do script e tente novamente.');
     }
   };
@@ -141,6 +149,11 @@ const ChecklistForm = () => {
   const exportToJson = () => {
     const formData = {
       date,
+      localName,
+      collaboratorName,
+      serviceOrderNumber,
+      description,
+      observation,
       categories,
       signature,
       timestamp: new Date().toISOString()
@@ -181,6 +194,77 @@ const ChecklistForm = () => {
                 onChange={(e) => setDate(e.target.value)}
                 className="mt-1"
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="localName" className="text-sm font-medium text-gray-700">
+                Nome do Local
+              </Label>
+              <Input
+                type="text"
+                id="localName"
+                value={localName}
+                onChange={(e) => setLocalName(e.target.value)}
+                className="mt-1"
+                placeholder="Digite o nome do local"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="collaboratorName" className="text-sm font-medium text-gray-700">
+                Nome do Colaborador
+              </Label>
+              <Input
+                type="text"
+                id="collaboratorName"
+                value={collaboratorName}
+                onChange={(e) => setCollaboratorName(e.target.value)}
+                className="mt-1"
+                placeholder="Digite o nome do colaborador"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="serviceOrderNumber" className="text-sm font-medium text-gray-700">
+                Número da Ordem de Serviço
+              </Label>
+              <Input
+                type="text"
+                id="serviceOrderNumber"
+                value={serviceOrderNumber}
+                onChange={(e) => setServiceOrderNumber(e.target.value)}
+                className="mt-1"
+                placeholder="Digite o número da OS"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Descrição
+              </Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="mt-1"
+                placeholder="Digite a descrição detalhada..."
+                rows={4}
+              />
+            </div>
+            <div>
+              <Label htmlFor="observation" className="text-sm font-medium text-gray-700">
+                Observação
+              </Label>
+              <Textarea
+                id="observation"
+                value={observation}
+                onChange={(e) => setObservation(e.target.value)}
+                className="mt-1"
+                placeholder="Digite observações importantes..."
+                rows={4}
               />
             </div>
           </div>
