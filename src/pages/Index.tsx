@@ -11,7 +11,7 @@ const Index = () => {
             Checklist de Plataforma de Lançamento MSV 
           </h1>
           <p className="text-gray-600">
-            Versão de teste V1 - produção Jonathan Gomes 
+            Versão de teste V3 01/06/2025 atuli - produção Jonathan Gomes 
           </p>
         </div>
         <ChecklistForm />
