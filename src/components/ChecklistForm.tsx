@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -6,7 +7,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import CategorySection from './CategorySection';
 import SignatureCanvas from './SignatureCanvas';
-import { Plus, Send, Download } from 'lucide-react';
+import { Plus, Download, FileText, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ChecklistItem {
@@ -54,7 +55,7 @@ const ChecklistForm = () => {
         { id: '2-6', code: '2.6', description: 'Barra roscada com oxidação', evaluation: 'NÃO', repair: 'NÃO' },
       ]
     },
-     {
+    {
       id: '3',
       name: 'DECK GARAPEIRA',
       items: [
@@ -71,8 +72,8 @@ const ChecklistForm = () => {
       name: 'GUARDA CORPO',
       items: [
         { id: '4-1', code: '4.1', description: 'Madeiramento deteriorado', evaluation: 'NÃO', repair: 'NÃO' },
-        { id: '4-2', code: '4.2', description: 'Presençade Cupins, evaluation: 'NÃO', repair: 'NÃO' },
-        { id: '4-3', code: '4.3', description: 'Rachadura no Madeiramento, evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '4-2', code: '4.2', description: 'Presença de Cupins', evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '4-3', code: '4.3', description: 'Rachadura no Madeiramento', evaluation: 'NÃO', repair: 'NÃO' },
         { id: '4-4', code: '4.4', description: 'Pintura Desgastada', evaluation: 'NÃO', repair: 'NÃO' },
       ]
     },
@@ -90,7 +91,7 @@ const ChecklistForm = () => {
     },
     {
       id: '6',
-      name: 'TÍTULO PARA NOVO TÓPICO,
+      name: 'TÍTULO PARA NOVO TÓPICO',
       items: [
         { id: '6-1', code: '6.1', description: 'Madeira deteriorada', evaluation: 'NÃO', repair: 'NÃO' },
         { id: '6-2', code: '6.2', description: 'Rachadura na trave', evaluation: 'NÃO', repair: 'NÃO' },
@@ -102,6 +103,35 @@ const ChecklistForm = () => {
     }
   ]);
   const [signature, setSignature] = useState<string>('');
+
+  // Função para salvar dados localmente
+  const saveToLocalStorage = () => {
+    const formData = {
+      date,
+      localName,
+      collaboratorName,
+      serviceOrderNumber,
+      description,
+      observation,
+      categories,
+      signature,
+      timestamp: new Date().toISOString()
+    };
+
+    const savedData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    savedData.push(formData);
+    localStorage.setItem('checklistData', JSON.stringify(savedData));
+    
+    toast.success('Checklist salvo localmente com sucesso!');
+    return formData;
+  };
+
+  // Função para carregar dados salvos
+  const loadSavedData = () => {
+    const savedData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    console.log('Dados salvos:', savedData);
+    toast.success(`${savedData.length} checklists encontrados no armazenamento local`);
+  };
 
   const addCategory = () => {
     const newId = (categories.length + 1).toString();
@@ -134,67 +164,8 @@ const ChecklistForm = () => {
       return;
     }
 
-    const formData = {
-      date,
-      localName,
-      collaboratorName,
-      serviceOrderNumber,
-      description,
-      observation,
-      categories,
-      signature,
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('Enviando dados para Google Docs:', formData);
-
-    try {
-      // IMPORTANTE: Substitua pela sua URL do Google Apps Script
-      const scriptUrl = 'https://script.google.com/macros/s/AKfycbxWDfAyYC8eEPoGNThP04RECWcKdZ8DhbQRA5PKVwWYX55zzhE09Sko9RXgdFhRvkFL/exec';
-      
-      console.log('URL do script:', scriptUrl);
-      console.log('Dados sendo enviados:', JSON.stringify(formData));
-
-      // Criar FormData para envio
-      const submitData = new FormData();
-      submitData.append('data', JSON.stringify(formData));
-
-      // Enviar usando POST
-      const response = await fetch(scriptUrl, {
-        method: 'POST',
-        body: submitData,
-        redirect: 'follow'
-      });
-
-      console.log('Status da resposta:', response.status);
-      console.log('Response OK:', response.ok);
-
-      if (response.ok) {
-        try {
-          const result = await response.text();
-          console.log('Resposta do Google Apps Script:', result);
-          
-          const parsedResult = JSON.parse(result);
-          if (parsedResult.status === 'success') {
-            toast.success('Formulário enviado com sucesso para o Google Docs!');
-            console.log('URL do documento:', parsedResult.docUrl);
-          } else {
-            console.error('Erro na resposta:', parsedResult);
-            toast.error(`Erro: ${parsedResult.message || 'Erro desconhecido'}`);
-          }
-        } catch (parseError) {
-          console.error('Erro ao processar resposta:', parseError);
-          toast.success('Formulário enviado! (Não foi possível verificar o status)');
-        }
-      } else {
-        console.error('Erro HTTP:', response.status, response.statusText);
-        toast.error(`Erro HTTP: ${response.status} - Verifique a URL do script`);
-      }
-      
-    } catch (error) {
-      console.error('Erro ao enviar para Google Docs:', error);
-      toast.error('Formulário enviado!');
-    }
+    // Salvar localmente
+    saveToLocalStorage();
   };
 
   const exportToJson = () => {
@@ -213,7 +184,7 @@ const ChecklistForm = () => {
     const dataStr = JSON.stringify(formData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `checklist-${date}.json`;
+    const exportFileDefaultName = `checklist-${date}-${serviceOrderNumber}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -223,12 +194,94 @@ const ChecklistForm = () => {
     toast.success('Arquivo JSON exportado com sucesso!');
   };
 
+  const exportToHtml = () => {
+    const formData = {
+      date,
+      localName,
+      collaboratorName,
+      serviceOrderNumber,
+      description,
+      observation,
+      categories,
+      signature,
+      timestamp: new Date().toISOString()
+    };
+
+    let html = `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Checklist de Plataforma - ${formData.localName}</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+            .category { margin-bottom: 30px; }
+            .category h3 { background: #f0f0f0; padding: 10px; margin: 0; }
+            .item { border-bottom: 1px solid #ddd; padding: 10px; }
+            .signature { margin-top: 30px; text-align: center; }
+            .signature img { max-width: 300px; border: 1px solid #ddd; }
+            @media print { body { margin: 0; } }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Checklist de Plataforma de Lançamento</h1>
+            <p>Data: ${formData.date}</p>
+        </div>
+        
+        <div class="info-grid">
+            <div><strong>Local:</strong> ${formData.localName}</div>
+            <div><strong>Colaborador(es):</strong> ${formData.collaboratorName}</div>
+            <div><strong>OS:</strong> ${formData.serviceOrderNumber}</div>
+            <div><strong>Data/Hora:</strong> ${new Date(formData.timestamp).toLocaleString('pt-BR')}</div>
+        </div>
+
+        ${formData.description ? `<div><strong>Descrição:</strong><br>${formData.description}</div><br>` : ''}
+        ${formData.observation ? `<div><strong>Materiais Utilizados:</strong><br>${formData.observation}</div><br>` : ''}
+
+        ${formData.categories.map(category => `
+            <div class="category">
+                <h3>${category.name}</h3>
+                ${category.items.map(item => `
+                    <div class="item">
+                        <strong>${item.code}</strong> - ${item.description}<br>
+                        <small>Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
+                    </div>
+                `).join('')}
+            </div>
+        `).join('')}
+
+        ${formData.signature ? `
+            <div class="signature">
+                <h3>Assinatura Digital</h3>
+                <img src="${formData.signature}" alt="Assinatura" />
+            </div>
+        ` : ''}
+    </body>
+    </html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `checklist-${formData.date}-${formData.serviceOrderNumber}.html`;
+    link.click();
+    
+    toast.success('Relatório HTML exportado com sucesso!');
+  };
+
   return (
     <Card className="max-w-6xl mx-auto shadow-2xl">
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
         <CardTitle className="text-2xl text-center">
           Checklist de Plataforma de Lançamento
         </CardTitle>
+        <p className="text-center text-blue-100 text-sm">
+          Funciona completamente offline
+        </p>
       </CardHeader>
       
       <CardContent className="p-6">
@@ -307,14 +360,14 @@ const ChecklistForm = () => {
             </div>
             <div>
               <Label htmlFor="observation" className="text-sm font-medium text-gray-700">
-                Materiais ultilizados
+                Materiais utilizados
               </Label>
               <Textarea
                 id="observation"
                 value={observation}
                 onChange={(e) => setObservation(e.target.value)}
                 className="mt-1"
-                placeholder="Digite os materiais ultilizados nos reparos..."
+                placeholder="Digite os materiais utilizados nos reparos..."
                 rows={4}
               />
             </div>
@@ -356,6 +409,16 @@ const ChecklistForm = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
             <Button
               type="button"
+              onClick={loadSavedData}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Ver Salvos
+            </Button>
+
+            <Button
+              type="button"
               onClick={exportToJson}
               variant="outline"
               className="flex items-center gap-2"
@@ -363,13 +426,23 @@ const ChecklistForm = () => {
               <Download className="h-4 w-4" />
               Exportar JSON
             </Button>
+
+            <Button
+              type="button"
+              onClick={exportToHtml}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Exportar HTML
+            </Button>
             
             <Button
               type="submit"
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex items-center gap-2"
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 flex items-center gap-2"
             >
-              <Send className="h-4 w-4" />
-              Enviar para Engenharia
+              <Save className="h-4 w-4" />
+              Salvar Checklist
             </Button>
           </div>
         </form>
