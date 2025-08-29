@@ -14,6 +14,7 @@ interface ChecklistItemType {
   description: string;
   evaluation: string;
   repair: string;
+  photo?: string;
 }
 
 interface Category {

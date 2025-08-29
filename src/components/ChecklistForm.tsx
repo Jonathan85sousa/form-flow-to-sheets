@@ -16,6 +16,7 @@ interface ChecklistItem {
   description: string;
   evaluation: string;
   repair: string;
+  photo?: string;
 }
 
 interface Category {
@@ -221,6 +222,7 @@ const ChecklistForm = () => {
             .category { margin-bottom: 30px; }
             .category h3 { background: #f0f0f0; padding: 10px; margin: 0; }
             .item { border-bottom: 1px solid #ddd; padding: 10px; }
+            .item-photo { max-width: 150px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px; }
             .signature { margin-top: 30px; text-align: center; }
             .signature img { max-width: 300px; border: 1px solid #ddd; }
             @media print { body { margin: 0; } }
@@ -245,12 +247,13 @@ const ChecklistForm = () => {
         ${formData.categories.map(category => `
             <div class="category">
                 <h3>${category.name}</h3>
-                ${category.items.map(item => `
-                    <div class="item">
-                        <strong>${item.code}</strong> - ${item.description}<br>
-                        <small>Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
-                    </div>
-                `).join('')}
+                 ${category.items.map(item => `
+                     <div class="item">
+                         <strong>${item.code}</strong> - ${item.description}<br>
+                         <small>Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
+                         ${item.photo ? `<br><img src="${item.photo}" alt="Foto do item ${item.code}" class="item-photo" />` : ''}
+                     </div>
+                 `).join('')}
             </div>
         `).join('')}
 
