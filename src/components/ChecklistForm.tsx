@@ -33,7 +33,7 @@ const ChecklistForm = () => {
   const [collaboratorName, setCollaboratorName] = useState('');
   const [serviceOrderNumber, setServiceOrderNumber] = useState('');
   const [description, setDescription] = useState('');
-  const [observation, setObservation] = useState('');
+  
   const [categories, setCategories] = useState<Category[]>([
     {
       id: '1',
@@ -117,7 +117,6 @@ const ChecklistForm = () => {
       collaboratorName,
       serviceOrderNumber,
       description,
-      observation,
       categories,
       signature,
       timestamp: new Date().toISOString()
@@ -189,7 +188,6 @@ const ChecklistForm = () => {
       collaboratorName,
       serviceOrderNumber,
       description,
-      observation,
       categories,
       signature,
       timestamp: new Date().toISOString()
@@ -215,7 +213,7 @@ const ChecklistForm = () => {
       collaboratorName,
       serviceOrderNumber,
       description,
-      observation,
+      
       categories,
       signature,
       timestamp: new Date().toISOString()
@@ -255,7 +253,7 @@ const ChecklistForm = () => {
         </div>
 
         ${formData.description ? `<div><strong>Descrição:</strong><br>${formData.description}</div><br>` : ''}
-        ${formData.observation ? `<div><strong>Materiais Utilizados:</strong><br>${formData.observation}</div><br>` : ''}
+        
 
         ${formData.categories.map(category => `
             <div class="category">
@@ -363,7 +361,7 @@ const ChecklistForm = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="mb-6">
             <div>
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 Descrição
@@ -374,19 +372,6 @@ const ChecklistForm = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 className="mt-1"
                 placeholder="Digite a descrição detalhada..."
-                rows={4}
-              />
-            </div>
-            <div>
-              <Label htmlFor="observation" className="text-sm font-medium text-gray-700">
-                Materiais utilizados
-              </Label>
-              <Textarea
-                id="observation"
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
-                className="mt-1"
-                placeholder="Digite os materiais utilizados nos reparos..."
                 rows={4}
               />
             </div>
@@ -529,11 +514,6 @@ const ChecklistForm = () => {
                       </p>
                     )}
                     
-                    {checklist.observation && (
-                      <p className="text-sm text-gray-700 mb-2">
-                        <strong>Materiais:</strong> {checklist.observation}
-                      </p>
-                    )}
                     
                     <div className="text-sm text-gray-600">
                       <strong>Categorias:</strong> {checklist.categories.length} |
