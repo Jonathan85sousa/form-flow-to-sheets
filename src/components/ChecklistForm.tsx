@@ -9,6 +9,8 @@ import CategorySection from './CategorySection';
 import SignatureCanvas from './SignatureCanvas';
 import { Plus, Download, FileText, Save, Eye, X } from 'lucide-react';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ChecklistItem {
   id: string;
@@ -289,6 +291,110 @@ const ChecklistForm = () => {
     toast.success('Relatório HTML exportado com sucesso!');
   };
 
+  const exportToPdf = async () => {
+    const formData = {
+      date,
+      localName,
+      collaboratorName,
+      serviceOrderNumber,
+      description,
+      categories,
+      signature,
+      timestamp: new Date().toISOString()
+    };
+
+    // Criar elemento temporário para renderizar o conteúdo
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.width = '800px';
+    tempDiv.style.padding = '20px';
+    tempDiv.style.backgroundColor = 'white';
+    tempDiv.style.fontFamily = 'Arial, sans-serif';
+
+    tempDiv.innerHTML = `
+      <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px;">
+        <h1 style="margin: 0; font-size: 24px; color: #333;">Checklist de Plataforma de Lançamento</h1>
+        <p style="margin: 10px 0; color: #666;">Data: ${formData.date}</p>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+        <div><strong>Local:</strong> ${formData.localName}</div>
+        <div><strong>Colaborador(es):</strong> ${formData.collaboratorName}</div>
+        <div><strong>OS:</strong> ${formData.serviceOrderNumber}</div>
+        <div><strong>Data/Hora:</strong> ${new Date(formData.timestamp).toLocaleString('pt-BR')}</div>
+      </div>
+
+      ${formData.description ? `<div style="margin-bottom: 20px;"><strong>Descrição:</strong><br>${formData.description}</div>` : ''}
+
+      ${formData.categories.map(category => `
+        <div style="margin-bottom: 30px;">
+          <h3 style="background: #f0f0f0; padding: 10px; margin: 0 0 10px 0; font-size: 18px;">${category.name}</h3>
+          ${category.items.map(item => `
+            <div style="border-bottom: 1px solid #ddd; padding: 10px;">
+              <strong>${item.code}</strong> - ${item.description}<br>
+              <small style="color: #666;">Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
+              ${item.materiaisUtilizados ? `<br><small style="color: #666;"><strong>Materiais utilizados:</strong> ${item.materiaisUtilizados}</small>` : ''}
+              ${item.descricaoRealizada ? `<br><small style="color: #666;"><strong>Descrição do que foi realizado:</strong> ${item.descricaoRealizada}</small>` : ''}
+              ${item.photo ? `<br><img src="${item.photo}" alt="Foto do item ${item.code}" style="max-width: 300px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px;" />` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+
+      ${formData.signature ? `
+        <div style="margin-top: 30px; text-align: center;">
+          <h3 style="margin-bottom: 10px;">Assinatura Digital</h3>
+          <img src="${formData.signature}" alt="Assinatura" style="max-width: 300px; border: 1px solid #ddd;" />
+        </div>
+      ` : ''}
+    `;
+
+    document.body.appendChild(tempDiv);
+
+    try {
+      const canvas = await html2canvas(tempDiv, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      // Calcular dimensões
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth - 20; // margem de 10mm de cada lado
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 10; // margem superior
+
+      // Adicionar primeira página
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= (pdfHeight - 20);
+
+      // Adicionar páginas adicionais se necessário
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - 20);
+      }
+
+      pdf.save(`checklist-${formData.date}-${formData.serviceOrderNumber}.pdf`);
+      toast.success('Relatório PDF exportado com sucesso!');
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF. Tente novamente.');
+    } finally {
+      document.body.removeChild(tempDiv);
+    }
+  };
+
 
   return (
     <Card className="max-w-6xl mx-auto shadow-2xl">
@@ -445,6 +551,16 @@ const ChecklistForm = () => {
             >
               <FileText className="h-4 w-4" />
               Exportar HTML
+            </Button>
+
+            <Button
+              type="button"
+              onClick={exportToPdf}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Exportar PDF
             </Button>
 
             
