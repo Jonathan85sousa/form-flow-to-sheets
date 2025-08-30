@@ -7,7 +7,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import CategorySection from './CategorySection';
 import SignatureCanvas from './SignatureCanvas';
-import { Plus, Download, FileText, Save, MessageCircle } from 'lucide-react';
+import { Plus, Download, FileText, Save, Eye, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ChecklistItem {
@@ -106,7 +106,8 @@ const ChecklistForm = () => {
     }
   ]);
   const [signature, setSignature] = useState<string>('');
-  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [showSavedData, setShowSavedData] = useState(false);
+  const [savedChecklists, setSavedChecklists] = useState<any[]>([]);
 
   // Função para salvar dados localmente
   const saveToLocalStorage = () => {
@@ -133,8 +134,17 @@ const ChecklistForm = () => {
   // Função para carregar dados salvos
   const loadSavedData = () => {
     const savedData = JSON.parse(localStorage.getItem('checklistData') || '[]');
-    console.log('Dados salvos:', savedData);
+    setSavedChecklists(savedData);
+    setShowSavedData(true);
     toast.success(`${savedData.length} checklists encontrados no armazenamento local`);
+  };
+
+  const deleteSavedChecklist = (index: number) => {
+    const savedData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    savedData.splice(index, 1);
+    localStorage.setItem('checklistData', JSON.stringify(savedData));
+    setSavedChecklists(savedData);
+    toast.success('Checklist removido com sucesso!');
   };
 
   const addCategory = () => {
@@ -281,121 +291,6 @@ const ChecklistForm = () => {
     toast.success('Relatório HTML exportado com sucesso!');
   };
 
-  const sendToWhatsApp = () => {
-    // Validação dos campos obrigatórios
-    if (!localName || !collaboratorName || !serviceOrderNumber) {
-      toast.error('Por favor, preencha todos os campos obrigatórios antes de enviar');
-      return;
-    }
-
-    if (!whatsappNumber || whatsappNumber.length < 10) {
-      toast.error('Por favor, configure um número de WhatsApp válido');
-      return;
-    }
-
-    // Limpar número (remover espaços e caracteres especiais)
-    const cleanNumber = whatsappNumber.replace(/[^\d]/g, '');
-
-    // Contar total de itens com fotos
-    const itemsWithPhotos = categories.flatMap(category => 
-      category.items.filter(item => item.photo)
-    ).length;
-
-    // Criar mensagem principal resumida para evitar bloqueio
-    let mainMessage = `CHECKLIST PLATAFORMA DE LANCAMENTO\n\n`;
-    mainMessage += `Data: ${new Date(date).toLocaleDateString('pt-BR')}\n`;
-    mainMessage += `Local: ${localName}\n`;
-    mainMessage += `Colaborador: ${collaboratorName}\n`;
-    mainMessage += `OS: ${serviceOrderNumber}\n\n`;
-
-    if (description) {
-      mainMessage += `Descricao: ${description}\n\n`;
-    }
-
-    if (observation) {
-      mainMessage += `Materiais Utilizados: ${observation}\n\n`;
-    }
-
-    // Contar problemas por categoria
-    const problemStats = categories.map(category => {
-      const problems = category.items.filter(item => 
-        item.evaluation === 'SIM' || item.repair === 'SIM'
-      ).length;
-      return { name: category.name, problems, total: category.items.length };
-    }).filter(stat => stat.problems > 0);
-
-    if (problemStats.length > 0) {
-      mainMessage += `RESUMO DOS PROBLEMAS:\n`;
-      problemStats.forEach(stat => {
-        mainMessage += `- ${stat.name}: ${stat.problems}/${stat.total} itens\n`;
-      });
-      mainMessage += `\n`;
-    } else {
-      mainMessage += `RESULTADO: Plataforma em perfeitas condicoes!\n\n`;
-    }
-
-    // Informações sobre anexos
-    if (itemsWithPhotos > 0) {
-      mainMessage += `Fotos capturadas: ${itemsWithPhotos} itens\n`;
-    }
-    
-    if (signature) {
-      mainMessage += `Assinatura digital: Coletada\n`;
-    }
-
-    mainMessage += `\nRelatorio completo nos arquivos exportados\n`;
-    mainMessage += `Gerado em: ${new Date().toLocaleString('pt-BR')}`;
-
-    // Codificar mensagem principal
-    const encodedMainMessage = encodeURIComponent(mainMessage);
-    
-    // Criar URL do WhatsApp com número específico
-    const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodedMainMessage}`;
-    
-    // Abrir WhatsApp
-    window.open(whatsappUrl, '_blank');
-    
-    toast.success(`Mensagem enviada para WhatsApp (+${cleanNumber})`);
-
-    // Se houver muitos detalhes, preparar uma segunda mensagem com detalhes
-    if (problemStats.length > 0) {
-      setTimeout(() => {
-        let detailMessage = `DETALHES DOS PROBLEMAS ENCONTRADOS:\n\n`;
-        
-        categories.forEach(category => {
-          const problemItems = category.items.filter(item => 
-            item.evaluation === 'SIM' || item.repair === 'SIM'
-          );
-          
-          if (problemItems.length > 0) {
-            detailMessage += `${category.name}:\n`;
-            problemItems.forEach(item => {
-              detailMessage += `${item.code} - ${item.description}\n`;
-              detailMessage += `Avaliacao: ${item.evaluation} | Reparo: ${item.repair}\n`;
-              
-              if (item.materiaisUtilizados) {
-                detailMessage += `Materiais: ${item.materiaisUtilizados}\n`;
-              }
-              
-              if (item.descricaoRealizada) {
-                detailMessage += `Realizado: ${item.descricaoRealizada}\n`;
-              }
-              
-              detailMessage += `\n`;
-            });
-            detailMessage += `---\n\n`;
-          }
-        });
-
-        const encodedDetailMessage = encodeURIComponent(detailMessage);
-        const detailUrl = `https://wa.me/${cleanNumber}?text=${encodedDetailMessage}`;
-        
-        if (confirm('Deseja enviar também os detalhes dos problemas encontrados?')) {
-          window.open(detailUrl, '_blank');
-        }
-      }, 2000);
-    }
-  };
 
   return (
     <Card className="max-w-6xl mx-auto shadow-2xl">
@@ -497,24 +392,6 @@ const ChecklistForm = () => {
             </div>
           </div>
 
-          <div className="mb-6">
-            <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200">
-              <Label htmlFor="whatsappNumber" className="text-sm font-medium text-green-700">
-                Número do WhatsApp (com código do país)
-              </Label>
-              <Input
-                type="text"
-                id="whatsappNumber"
-                value={whatsappNumber}
-                onChange={(e) => setWhatsappNumber(e.target.value)}
-                className="mt-1"
-                placeholder="Ex: 5511999999999 (Brasil: 55 + DDD + número)"
-              />
-              <p className="text-xs text-green-600 mt-1">
-                Formato: código do país + DDD + número (só números, sem espaços ou símbolos)
-              </p>
-            </div>
-          </div>
 
           <div className="space-y-6">
             {categories.map((category) => (
@@ -561,7 +438,7 @@ const ChecklistForm = () => {
               variant="outline"
               className="flex items-center gap-2"
             >
-              <FileText className="h-4 w-4" />
+              <Eye className="h-4 w-4" />
               Ver Salvos
             </Button>
 
@@ -585,14 +462,6 @@ const ChecklistForm = () => {
               Exportar HTML
             </Button>
 
-            <Button
-              type="button"
-              onClick={sendToWhatsApp}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Enviar para WhatsApp
-            </Button>
             
             <Button
               type="submit"
@@ -603,6 +472,82 @@ const ChecklistForm = () => {
             </Button>
           </div>
         </form>
+
+        {showSavedData && (
+          <div className="mt-6 p-6 bg-gray-50 rounded-lg border-2 border-gray-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">
+                Checklists Salvos ({savedChecklists.length})
+              </h3>
+              <Button
+                type="button"
+                onClick={() => setShowSavedData(false)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Fechar
+              </Button>
+            </div>
+            
+            {savedChecklists.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                Nenhum checklist salvo encontrado
+              </p>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {savedChecklists.map((checklist, index) => (
+                  <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-800">
+                          {checklist.localName} - OS: {checklist.serviceOrderNumber}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          Data: {new Date(checklist.date).toLocaleDateString('pt-BR')} | 
+                          Colaborador: {checklist.collaboratorName}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Salvo em: {new Date(checklist.timestamp).toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => deleteSavedChecklist(index)}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {checklist.description && (
+                      <p className="text-sm text-gray-700 mb-2">
+                        <strong>Descrição:</strong> {checklist.description}
+                      </p>
+                    )}
+                    
+                    {checklist.observation && (
+                      <p className="text-sm text-gray-700 mb-2">
+                        <strong>Materiais:</strong> {checklist.observation}
+                      </p>
+                    )}
+                    
+                    <div className="text-sm text-gray-600">
+                      <strong>Categorias:</strong> {checklist.categories.length} |
+                      <strong> Itens com fotos:</strong> {
+                        checklist.categories.flatMap(cat => cat.items).filter(item => item.photo).length
+                      } |
+                      <strong> Assinatura:</strong> {checklist.signature ? 'Sim' : 'Não'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
