@@ -16,6 +16,7 @@ interface ChecklistItemType {
   repair: string;
   photo?: string;
   materiaisUtilizados?: string;
+  descricaoRealizada?: string;
 }
 
 interface Category {

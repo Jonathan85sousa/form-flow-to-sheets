@@ -13,6 +13,7 @@ interface ChecklistItemType {
   repair: string;
   photo?: string;
   materiaisUtilizados?: string;
+  descricaoRealizada?: string;
 }
 
 interface ChecklistItemProps {
@@ -178,6 +179,23 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                   onUpdate(updatedItem);
                 }}
                 placeholder="Ex: grampos, lacres, porcas, arruelas..."
+                className="w-full text-sm"
+              />
+            </td>
+          </tr>
+          <tr className="border-b bg-blue-50">
+            <td className="px-4 py-2"></td>
+            <td className="px-4 py-2 text-sm text-blue-700 font-medium">
+              Descrição do que foi realizado:
+            </td>
+            <td colSpan={3} className="px-4 py-2">
+              <Input
+                value={item.descricaoRealizada || ''}
+                onChange={(e) => {
+                  const updatedItem = { ...item, descricaoRealizada: e.target.value };
+                  onUpdate(updatedItem);
+                }}
+                placeholder="Descreva o que foi realizado no reparo..."
                 className="w-full text-sm"
               />
             </td>
