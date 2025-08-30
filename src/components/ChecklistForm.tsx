@@ -106,6 +106,7 @@ const ChecklistForm = () => {
     }
   ]);
   const [signature, setSignature] = useState<string>('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
 
   // Função para salvar dados localmente
   const saveToLocalStorage = () => {
@@ -287,87 +288,113 @@ const ChecklistForm = () => {
       return;
     }
 
-    // Criar resumo dos itens com problemas
-    const problematicItems = categories.flatMap(category => 
-      category.items.filter(item => item.evaluation === 'SIM' || item.repair === 'SIM')
-        .map(item => ({
-          category: category.name,
-          code: item.code,
-          description: item.description,
-          evaluation: item.evaluation,
-          repair: item.repair,
-          materiaisUtilizados: item.materiaisUtilizados,
-          descricaoRealizada: item.descricaoRealizada,
-          hasPhoto: !!item.photo
-        }))
-    );
+    if (!whatsappNumber || whatsappNumber.length < 10) {
+      toast.error('Por favor, configure um número de WhatsApp válido');
+      return;
+    }
 
-    // Criar mensagem formatada
-    let message = `🔧 *CHECKLIST DE PLATAFORMA DE LANÇAMENTO*\n\n`;
-    message += `📅 *Data:* ${new Date(date).toLocaleDateString('pt-BR')}\n`;
-    message += `📍 *Local:* ${localName}\n`;
-    message += `👷 *Colaborador(es):* ${collaboratorName}\n`;
-    message += `🎫 *OS:* ${serviceOrderNumber}\n\n`;
+    // Limpar número (remover espaços e caracteres especiais)
+    const cleanNumber = whatsappNumber.replace(/[^\d]/g, '');
+
+    // Contar total de itens com fotos
+    const itemsWithPhotos = categories.flatMap(category => 
+      category.items.filter(item => item.photo)
+    ).length;
+
+    // Criar mensagem principal resumida para evitar bloqueio
+    let mainMessage = `CHECKLIST PLATAFORMA DE LANCAMENTO\n\n`;
+    mainMessage += `Data: ${new Date(date).toLocaleDateString('pt-BR')}\n`;
+    mainMessage += `Local: ${localName}\n`;
+    mainMessage += `Colaborador: ${collaboratorName}\n`;
+    mainMessage += `OS: ${serviceOrderNumber}\n\n`;
 
     if (description) {
-      message += `📋 *Descrição:* ${description}\n\n`;
+      mainMessage += `Descricao: ${description}\n\n`;
     }
 
     if (observation) {
-      message += `🔨 *Materiais Utilizados:* ${observation}\n\n`;
+      mainMessage += `Materiais Utilizados: ${observation}\n\n`;
     }
 
-    // Resumo dos problemas encontrados
-    if (problematicItems.length > 0) {
-      message += `⚠️ *ITENS COM PROBLEMAS OU REPAROS:*\n\n`;
-      
-      const groupedByCategory = problematicItems.reduce((acc, item) => {
-        if (!acc[item.category]) {
-          acc[item.category] = [];
-        }
-        acc[item.category].push(item);
-        return acc;
-      }, {} as Record<string, typeof problematicItems>);
+    // Contar problemas por categoria
+    const problemStats = categories.map(category => {
+      const problems = category.items.filter(item => 
+        item.evaluation === 'SIM' || item.repair === 'SIM'
+      ).length;
+      return { name: category.name, problems, total: category.items.length };
+    }).filter(stat => stat.problems > 0);
 
-      Object.entries(groupedByCategory).forEach(([categoryName, items]) => {
-        message += `🏗️ *${categoryName}:*\n`;
-        items.forEach(item => {
-          message += `• ${item.code} - ${item.description}\n`;
-          message += `  ✓ Avaliação: ${item.evaluation} | Reparo: ${item.repair}\n`;
-          
-          if (item.materiaisUtilizados) {
-            message += `  🔧 Materiais: ${item.materiaisUtilizados}\n`;
-          }
-          
-          if (item.descricaoRealizada) {
-            message += `  📝 Realizado: ${item.descricaoRealizada}\n`;
-          }
-          
-          if (item.hasPhoto) {
-            message += `  📷 Foto anexada no relatório\n`;
-          }
-          
-          message += `\n`;
-        });
-        message += `\n`;
+    if (problemStats.length > 0) {
+      mainMessage += `RESUMO DOS PROBLEMAS:\n`;
+      problemStats.forEach(stat => {
+        mainMessage += `- ${stat.name}: ${stat.problems}/${stat.total} itens\n`;
       });
+      mainMessage += `\n`;
     } else {
-      message += `✅ *RESULTADO:* Nenhum problema encontrado - Plataforma em perfeitas condições!\n\n`;
+      mainMessage += `RESULTADO: Plataforma em perfeitas condicoes!\n\n`;
     }
 
-    // Informação sobre documentos completos
-    message += `📄 *Documentação completa (com fotos e assinatura) disponível nos arquivos exportados*\n\n`;
-    message += `✍️ *Assinatura digital:* ${signature ? 'Coletada ✓' : 'Não coletada'}\n\n`;
-    message += `🕐 *Relatório gerado em:* ${new Date().toLocaleString('pt-BR')}`;
-
-    // Codificar mensagem para URL
-    const encodedMessage = encodeURIComponent(message);
+    // Informações sobre anexos
+    if (itemsWithPhotos > 0) {
+      mainMessage += `Fotos capturadas: ${itemsWithPhotos} itens\n`;
+    }
     
-    // Abrir WhatsApp com a mensagem
-    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    if (signature) {
+      mainMessage += `Assinatura digital: Coletada\n`;
+    }
+
+    mainMessage += `\nRelatorio completo nos arquivos exportados\n`;
+    mainMessage += `Gerado em: ${new Date().toLocaleString('pt-BR')}`;
+
+    // Codificar mensagem principal
+    const encodedMainMessage = encodeURIComponent(mainMessage);
+    
+    // Criar URL do WhatsApp com número específico
+    const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodedMainMessage}`;
+    
+    // Abrir WhatsApp
     window.open(whatsappUrl, '_blank');
     
-    toast.success('Mensagem preparada para WhatsApp! Selecione o grupo ou contato.');
+    toast.success(`Mensagem enviada para WhatsApp (+${cleanNumber})`);
+
+    // Se houver muitos detalhes, preparar uma segunda mensagem com detalhes
+    if (problemStats.length > 0) {
+      setTimeout(() => {
+        let detailMessage = `DETALHES DOS PROBLEMAS ENCONTRADOS:\n\n`;
+        
+        categories.forEach(category => {
+          const problemItems = category.items.filter(item => 
+            item.evaluation === 'SIM' || item.repair === 'SIM'
+          );
+          
+          if (problemItems.length > 0) {
+            detailMessage += `${category.name}:\n`;
+            problemItems.forEach(item => {
+              detailMessage += `${item.code} - ${item.description}\n`;
+              detailMessage += `Avaliacao: ${item.evaluation} | Reparo: ${item.repair}\n`;
+              
+              if (item.materiaisUtilizados) {
+                detailMessage += `Materiais: ${item.materiaisUtilizados}\n`;
+              }
+              
+              if (item.descricaoRealizada) {
+                detailMessage += `Realizado: ${item.descricaoRealizada}\n`;
+              }
+              
+              detailMessage += `\n`;
+            });
+            detailMessage += `---\n\n`;
+          }
+        });
+
+        const encodedDetailMessage = encodeURIComponent(detailMessage);
+        const detailUrl = `https://wa.me/${cleanNumber}?text=${encodedDetailMessage}`;
+        
+        if (confirm('Deseja enviar também os detalhes dos problemas encontrados?')) {
+          window.open(detailUrl, '_blank');
+        }
+      }, 2000);
+    }
   };
 
   return (
@@ -467,6 +494,25 @@ const ChecklistForm = () => {
                 placeholder="Digite os materiais utilizados nos reparos..."
                 rows={4}
               />
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200">
+              <Label htmlFor="whatsappNumber" className="text-sm font-medium text-green-700">
+                Número do WhatsApp (com código do país)
+              </Label>
+              <Input
+                type="text"
+                id="whatsappNumber"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                className="mt-1"
+                placeholder="Ex: 5511999999999 (Brasil: 55 + DDD + número)"
+              />
+              <p className="text-xs text-green-600 mt-1">
+                Formato: código do país + DDD + número (só números, sem espaços ou símbolos)
+              </p>
             </div>
           </div>
 
