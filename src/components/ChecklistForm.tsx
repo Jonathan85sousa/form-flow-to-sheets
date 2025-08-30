@@ -17,6 +17,7 @@ interface ChecklistItem {
   evaluation: string;
   repair: string;
   photo?: string;
+  materiaisUtilizados?: string;
 }
 
 interface Category {
@@ -251,6 +252,7 @@ const ChecklistForm = () => {
                      <div class="item">
                          <strong>${item.code}</strong> - ${item.description}<br>
                          <small>Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
+                         ${item.materiaisUtilizados ? `<br><small><strong>Materiais utilizados:</strong> ${item.materiaisUtilizados}</small>` : ''}
                          ${item.photo ? `<br><img src="${item.photo}" alt="Foto do item ${item.code}" class="item-photo" />` : ''}
                      </div>
                  `).join('')}
@@ -399,10 +401,15 @@ const ChecklistForm = () => {
             </Button>
           </div>
 
-          <div className="mt-8">
-            <Label className="text-sm font-medium text-gray-700 mb-3 block">
-              Assinatura Digital
-            </Label>
+          <div className="mt-8 bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-bold text-blue-800 mb-2">
+                Assinatura do Cliente
+              </h3>
+              <p className="text-sm text-blue-600">
+                Por favor, assine abaixo para confirmar a realização dos serviços
+              </p>
+            </div>
             <SignatureCanvas
               signature={signature}
               onSignatureChange={setSignature}

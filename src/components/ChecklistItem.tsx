@@ -12,6 +12,7 @@ interface ChecklistItemType {
   evaluation: string;
   repair: string;
   photo?: string;
+  materiaisUtilizados?: string;
 }
 
 interface ChecklistItemProps {
@@ -163,55 +164,74 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
       </tr>
       
       {showPhotoOption && (
-        <tr className="border-b bg-blue-50">
-          <td className="px-4 py-2"></td>
-          <td className="px-4 py-2 text-sm text-blue-700 font-medium">
-            Foto do Item:
-          </td>
-          <td colSpan={3} className="px-4 py-2">
-            <div className="flex items-center gap-2">
-              {item.photo ? (
-                <div className="flex items-center gap-2">
-                  <img 
-                    src={item.photo} 
-                    alt="Item foto" 
-                    className="h-12 w-12 object-cover rounded border"
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={removePhoto}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Remover
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                    id={`photo-${item.id}`}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => document.getElementById(`photo-${item.id}`)?.click()}
-                    className="text-blue-600 hover:text-blue-700"
-                  >
-                    <Camera className="h-3 w-3 mr-1" />
-                    Adicionar Foto
-                  </Button>
-                </div>
-              )}
-            </div>
-          </td>
-        </tr>
+        <>
+          <tr className="border-b bg-blue-50">
+            <td className="px-4 py-2"></td>
+            <td className="px-4 py-2 text-sm text-blue-700 font-medium">
+              Materiais Utilizados:
+            </td>
+            <td colSpan={3} className="px-4 py-2">
+              <Input
+                value={item.materiaisUtilizados || ''}
+                onChange={(e) => {
+                  const updatedItem = { ...item, materiaisUtilizados: e.target.value };
+                  onUpdate(updatedItem);
+                }}
+                placeholder="Ex: grampos, lacres, porcas, arruelas..."
+                className="w-full text-sm"
+              />
+            </td>
+          </tr>
+          <tr className="border-b bg-blue-50">
+            <td className="px-4 py-2"></td>
+            <td className="px-4 py-2 text-sm text-blue-700 font-medium">
+              Foto do Item:
+            </td>
+            <td colSpan={3} className="px-4 py-2">
+              <div className="flex items-center gap-2">
+                {item.photo ? (
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={item.photo} 
+                      alt="Item foto" 
+                      className="h-12 w-12 object-cover rounded border"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={removePhoto}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      id={`photo-${item.id}`}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => document.getElementById(`photo-${item.id}`)?.click()}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Camera className="h-3 w-3 mr-1" />
+                      Adicionar Foto
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </td>
+          </tr>
+        </>
       )}
     </>
   );
