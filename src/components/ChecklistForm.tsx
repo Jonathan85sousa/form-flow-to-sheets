@@ -7,7 +7,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import CategorySection from './CategorySection';
 import SignatureCanvas from './SignatureCanvas';
-import { Plus, Download, FileText, Save } from 'lucide-react';
+import { Plus, Download, FileText, Save, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ChecklistItem {
@@ -280,6 +280,96 @@ const ChecklistForm = () => {
     toast.success('Relatório HTML exportado com sucesso!');
   };
 
+  const sendToWhatsApp = () => {
+    // Validação dos campos obrigatórios
+    if (!localName || !collaboratorName || !serviceOrderNumber) {
+      toast.error('Por favor, preencha todos os campos obrigatórios antes de enviar');
+      return;
+    }
+
+    // Criar resumo dos itens com problemas
+    const problematicItems = categories.flatMap(category => 
+      category.items.filter(item => item.evaluation === 'SIM' || item.repair === 'SIM')
+        .map(item => ({
+          category: category.name,
+          code: item.code,
+          description: item.description,
+          evaluation: item.evaluation,
+          repair: item.repair,
+          materiaisUtilizados: item.materiaisUtilizados,
+          descricaoRealizada: item.descricaoRealizada,
+          hasPhoto: !!item.photo
+        }))
+    );
+
+    // Criar mensagem formatada
+    let message = `🔧 *CHECKLIST DE PLATAFORMA DE LANÇAMENTO*\n\n`;
+    message += `📅 *Data:* ${new Date(date).toLocaleDateString('pt-BR')}\n`;
+    message += `📍 *Local:* ${localName}\n`;
+    message += `👷 *Colaborador(es):* ${collaboratorName}\n`;
+    message += `🎫 *OS:* ${serviceOrderNumber}\n\n`;
+
+    if (description) {
+      message += `📋 *Descrição:* ${description}\n\n`;
+    }
+
+    if (observation) {
+      message += `🔨 *Materiais Utilizados:* ${observation}\n\n`;
+    }
+
+    // Resumo dos problemas encontrados
+    if (problematicItems.length > 0) {
+      message += `⚠️ *ITENS COM PROBLEMAS OU REPAROS:*\n\n`;
+      
+      const groupedByCategory = problematicItems.reduce((acc, item) => {
+        if (!acc[item.category]) {
+          acc[item.category] = [];
+        }
+        acc[item.category].push(item);
+        return acc;
+      }, {} as Record<string, typeof problematicItems>);
+
+      Object.entries(groupedByCategory).forEach(([categoryName, items]) => {
+        message += `🏗️ *${categoryName}:*\n`;
+        items.forEach(item => {
+          message += `• ${item.code} - ${item.description}\n`;
+          message += `  ✓ Avaliação: ${item.evaluation} | Reparo: ${item.repair}\n`;
+          
+          if (item.materiaisUtilizados) {
+            message += `  🔧 Materiais: ${item.materiaisUtilizados}\n`;
+          }
+          
+          if (item.descricaoRealizada) {
+            message += `  📝 Realizado: ${item.descricaoRealizada}\n`;
+          }
+          
+          if (item.hasPhoto) {
+            message += `  📷 Foto anexada no relatório\n`;
+          }
+          
+          message += `\n`;
+        });
+        message += `\n`;
+      });
+    } else {
+      message += `✅ *RESULTADO:* Nenhum problema encontrado - Plataforma em perfeitas condições!\n\n`;
+    }
+
+    // Informação sobre documentos completos
+    message += `📄 *Documentação completa (com fotos e assinatura) disponível nos arquivos exportados*\n\n`;
+    message += `✍️ *Assinatura digital:* ${signature ? 'Coletada ✓' : 'Não coletada'}\n\n`;
+    message += `🕐 *Relatório gerado em:* ${new Date().toLocaleString('pt-BR')}`;
+
+    // Codificar mensagem para URL
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Abrir WhatsApp com a mensagem
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+    
+    toast.success('Mensagem preparada para WhatsApp! Selecione o grupo ou contato.');
+  };
+
   return (
     <Card className="max-w-6xl mx-auto shadow-2xl">
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
@@ -447,6 +537,15 @@ const ChecklistForm = () => {
             >
               <FileText className="h-4 w-4" />
               Exportar HTML
+            </Button>
+
+            <Button
+              type="button"
+              onClick={sendToWhatsApp}
+              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2"
+            >
+              <MessageCircle className="h-4 w-4" />
+              Enviar para WhatsApp
             </Button>
             
             <Button
