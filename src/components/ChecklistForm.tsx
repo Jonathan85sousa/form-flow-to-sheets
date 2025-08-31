@@ -292,172 +292,214 @@ const ChecklistForm = () => {
   };
 
   const exportToPdf = async () => {
-    const formData = {
-      date,
-      localName,
-      collaboratorName,
-      serviceOrderNumber,
-      description,
-      categories,
-      signature,
-      timestamp: new Date().toISOString()
-    };
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 15;
-    const contentWidth = pageWidth - (margin * 2);
-    let currentY = margin;
-
-    // Função para adicionar nova página
-    const addNewPage = () => {
-      pdf.addPage();
-      currentY = margin;
-    };
-
-    // Função para verificar se precisa de nova página
-    const checkPageBreak = (neededHeight: number) => {
-      if (currentY + neededHeight > pageHeight - margin) {
-        addNewPage();
-      }
-    };
-
-    // Função para renderizar seção e retornar altura
-    const renderSection = async (htmlContent: string, minHeight = 30) => {
-      const tempDiv = document.createElement('div');
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '750px';
-      tempDiv.style.padding = '15px';
-      tempDiv.style.backgroundColor = 'white';
-      tempDiv.style.fontFamily = 'Arial, sans-serif';
-      tempDiv.innerHTML = htmlContent;
-      
-      document.body.appendChild(tempDiv);
-      
-      try {
-        const canvas = await html2canvas(tempDiv, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = contentWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        
-        // Verificar se precisa quebrar página
-        checkPageBreak(Math.max(imgHeight, minHeight));
-        
-        pdf.addImage(imgData, 'PNG', margin, currentY, imgWidth, imgHeight);
-        currentY += imgHeight + 5; // pequeno espaço entre seções
-        
-        return imgHeight;
-      } finally {
-        document.body.removeChild(tempDiv);
-      }
-    };
-
     try {
-      // 1. Cabeçalho
-      await renderSection(`
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 24px; color: #333;">Checklist de Plataforma de Lançamento</h1>
-          <p style="margin: 10px 0; color: #666;">Data: ${formData.date}</p>
-        </div>
-      `);
+      toast.info('Iniciando geração do PDF...');
+      
+      const formData = {
+        date,
+        localName,
+        collaboratorName,
+        serviceOrderNumber,
+        description,
+        categories,
+        signature,
+        timestamp: new Date().toISOString()
+      };
 
-      // 2. Informações do formulário
-      await renderSection(`
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-          <div><strong>Local:</strong> ${formData.localName}</div>
-          <div><strong>Colaborador(es):</strong> ${formData.collaboratorName}</div>
-          <div><strong>OS:</strong> ${formData.serviceOrderNumber}</div>
-          <div><strong>Data/Hora:</strong> ${new Date(formData.timestamp).toLocaleString('pt-BR')}</div>
-        </div>
-        ${formData.description ? `<div style="margin-bottom: 15px;"><strong>Descrição:</strong><br>${formData.description}</div>` : ''}
-      `);
+      // Validar dados obrigatórios
+      if (!formData.localName || !formData.collaboratorName || !formData.serviceOrderNumber) {
+        toast.error('Preencha todos os campos obrigatórios antes de exportar');
+        return;
+      }
 
-      // 3. Cada categoria separadamente
-      for (const category of formData.categories) {
-        // Verificar se a categoria tem itens
-        if (category.items.length === 0) continue;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let yPosition = 20;
 
-        // Cabeçalho da categoria
-        checkPageBreak(40);
-        await renderSection(`
-          <div style="margin-bottom: 15px;">
-            <h3 style="background: #f0f0f0; padding: 12px; margin: 0; font-size: 18px; border-radius: 5px;">${category.name}</h3>
-          </div>
-        `, 40);
+      // Função para adicionar texto ao PDF
+      const addText = (text: string, x: number, y: number, options: any = {}) => {
+        const fontSize = options.fontSize || 12;
+        const style = options.style || 'normal';
+        
+        pdf.setFontSize(fontSize);
+        pdf.setFont('helvetica', style);
+        
+        if (options.color) {
+          pdf.setTextColor(options.color);
+        } else {
+          pdf.setTextColor(0, 0, 0);
+        }
+        
+        pdf.text(text, x, y);
+        return y + (fontSize * 0.5);
+      };
 
-        // Processar itens da categoria em pequenos grupos para evitar quebras no meio
-        const itemsPerGroup = 3;
-        for (let i = 0; i < category.items.length; i += itemsPerGroup) {
-          const itemGroup = category.items.slice(i, i + itemsPerGroup);
-          
-          const groupHtml = `
-            <div style="margin-bottom: 15px;">
-              ${itemGroup.map(item => `
-                <div style="border: 1px solid #e0e0e0; border-radius: 5px; padding: 12px; margin-bottom: 10px; background: #fafafa;">
-                  <div style="margin-bottom: 8px;">
-                    <strong style="color: #333;">${item.code}</strong> - ${item.description}
-                  </div>
-                  <div style="margin-bottom: 5px;">
-                    <small style="color: #666; background: #e8f4f8; padding: 2px 8px; border-radius: 3px; margin-right: 10px;">
-                      Avaliação: ${item.evaluation}
-                    </small>
-                    <small style="color: #666; background: #f0f8e8; padding: 2px 8px; border-radius: 3px;">
-                      Reparo: ${item.repair}
-                    </small>
-                  </div>
-                  ${item.descricaoRealizada ? `
-                    <div style="margin: 8px 0; padding: 8px; background: #fff; border-left: 3px solid #4CAF50; border-radius: 3px;">
-                      <small style="color: #555;"><strong>Descrição realizada:</strong> ${item.descricaoRealizada}</small>
-                    </div>
-                  ` : ''}
-                  ${item.photo ? `
-                    <div style="margin-top: 10px; text-align: center;">
-                      <img src="${item.photo}" alt="Foto do item ${item.code}" 
-                           style="max-width: 280px; max-height: 200px; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
-                    </div>
-                  ` : ''}
-                </div>
-              `).join('')}
-            </div>
-          `;
+      // Função para verificar quebra de página
+      const checkPageBreak = (neededSpace: number) => {
+        if (yPosition + neededSpace > 280) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+      };
 
-          // Estimar altura mínima baseada no conteúdo
-          const hasPhotos = itemGroup.some(item => item.photo);
-          const minHeight = hasPhotos ? 150 : 80;
-          
-          await renderSection(groupHtml, minHeight);
+      // Cabeçalho
+      yPosition = addText('CHECKLIST DE PLATAFORMA DE LANÇAMENTO', 20, yPosition, {
+        fontSize: 16,
+        style: 'bold'
+      });
+      
+      yPosition += 10;
+      pdf.line(20, yPosition, 190, yPosition);
+      yPosition += 15;
+
+      // Informações básicas
+      yPosition = addText(`Data: ${formData.date}`, 20, yPosition);
+      yPosition += 5;
+      yPosition = addText(`Local: ${formData.localName}`, 20, yPosition);
+      yPosition += 5;
+      yPosition = addText(`Colaborador(es): ${formData.collaboratorName}`, 20, yPosition);
+      yPosition += 5;
+      yPosition = addText(`OS: ${formData.serviceOrderNumber}`, 20, yPosition);
+      yPosition += 5;
+      
+      if (formData.description) {
+        yPosition += 5;
+        yPosition = addText('Descrição:', 20, yPosition, { style: 'bold' });
+        yPosition += 5;
+        // Dividir texto longo em múltiplas linhas
+        const descLines = pdf.splitTextToSize(formData.description, 170);
+        for (const line of descLines) {
+          checkPageBreak(15);
+          yPosition = addText(line, 20, yPosition);
+          yPosition += 5;
         }
       }
 
-      // 4. Assinatura (se existe)
-      if (formData.signature) {
-        // Garantir que a assinatura não seja cortada
-        checkPageBreak(120);
-        await renderSection(`
-          <div style="margin-top: 30px; text-align: center; page-break-inside: avoid;">
-            <h3 style="margin-bottom: 15px; color: #333;">Assinatura Digital</h3>
-            <div style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; background: #fafafa;">
-              <img src="${formData.signature}" alt="Assinatura" 
-                   style="max-width: 280px; max-height: 100px; border: 1px solid #ccc; border-radius: 5px;" />
-            </div>
-          </div>
-        `, 120);
+      yPosition += 10;
+
+      // Processar categorias
+      for (const category of formData.categories) {
+        if (category.items.length === 0) continue;
+
+        checkPageBreak(30);
+        
+        // Nome da categoria
+        yPosition = addText(category.name, 20, yPosition, {
+          fontSize: 14,
+          style: 'bold'
+        });
+        yPosition += 10;
+
+        // Itens da categoria
+        for (const item of category.items) {
+          checkPageBreak(25);
+          
+          yPosition = addText(`${item.code} - ${item.description}`, 25, yPosition);
+          yPosition += 5;
+          yPosition = addText(`Avaliação: ${item.evaluation} | Reparo: ${item.repair}`, 30, yPosition, {
+            fontSize: 10
+          });
+          yPosition += 5;
+          
+          if (item.descricaoRealizada) {
+            const descLines = pdf.splitTextToSize(`Descrição realizada: ${item.descricaoRealizada}`, 160);
+            for (const line of descLines) {
+              checkPageBreak(15);
+              yPosition = addText(line, 30, yPosition, { fontSize: 10 });
+              yPosition += 5;
+            }
+          }
+          
+          if (item.photo) {
+            checkPageBreak(60);
+            try {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              
+              await new Promise((resolve, reject) => {
+                img.onload = () => {
+                  try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Redimensionar imagem para caber no PDF
+                    const maxWidth = 80;
+                    const maxHeight = 50;
+                    
+                    let { width, height } = img;
+                    
+                    if (width > maxWidth) {
+                      height = (height * maxWidth) / width;
+                      width = maxWidth;
+                    }
+                    
+                    if (height > maxHeight) {
+                      width = (width * maxHeight) / height;
+                      height = maxHeight;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    pdf.addImage(imgData, 'JPEG', 30, yPosition, width, height);
+                    
+                    resolve(true);
+                  } catch (error) {
+                    console.warn('Erro ao processar imagem:', error);
+                    resolve(false);
+                  }
+                };
+                img.onerror = () => {
+                  console.warn('Erro ao carregar imagem');
+                  resolve(false);
+                };
+                img.src = item.photo;
+              });
+              
+              yPosition += 55;
+            } catch (error) {
+              console.warn('Erro ao adicionar imagem ao PDF:', error);
+            }
+          }
+          
+          yPosition += 5;
+        }
+        
+        yPosition += 10;
       }
 
-      pdf.save(`checklist-${formData.date}-${formData.serviceOrderNumber}.pdf`);
-      toast.success('Relatório PDF exportado com sucesso!');
+      // Assinatura
+      if (formData.signature) {
+        checkPageBreak(80);
+        
+        yPosition += 10;
+        yPosition = addText('Assinatura Digital:', 20, yPosition, {
+          fontSize: 14,
+          style: 'bold'
+        });
+        yPosition += 10;
+        
+        try {
+          pdf.addImage(formData.signature, 'PNG', 20, yPosition, 80, 40);
+          yPosition += 45;
+        } catch (error) {
+          console.warn('Erro ao adicionar assinatura:', error);
+          yPosition = addText('[Assinatura não pôde ser adicionada]', 20, yPosition);
+          yPosition += 10;
+        }
+      }
+
+      // Salvar o PDF
+      const fileName = `checklist-${formData.date}-${formData.serviceOrderNumber}.pdf`;
+      pdf.save(fileName);
+      
+      toast.success('PDF exportado com sucesso!');
       
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      toast.error('Erro ao gerar PDF. Tente novamente.');
+      toast.error('Erro ao gerar PDF. Verifique os dados e tente novamente.');
     }
   };
 
