@@ -315,7 +315,7 @@ const ChecklistForm = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       let yPosition = 20;
 
-      // Função para adicionar texto ao PDF
+      // Função para adicionar texto ao PDF com estilos aprimorados
       const addText = (text: string, x: number, y: number, options: any = {}) => {
         const fontSize = options.fontSize || 12;
         const style = options.style || 'normal';
@@ -329,88 +329,114 @@ const ChecklistForm = () => {
           pdf.setTextColor(0, 0, 0);
         }
         
+        // Adicionar fundo colorido para títulos principais
+        if (options.highlight) {
+          pdf.setFillColor(230, 240, 255); // Azul claro
+          pdf.rect(x - 2, y - fontSize * 0.7, 170, fontSize * 1.2, 'F');
+        }
+        
         pdf.text(text, x, y);
-        return y + (fontSize * 0.5);
+        return y + (fontSize * 0.6);
       };
 
       // Função para verificar quebra de página
       const checkPageBreak = (neededSpace: number) => {
-        if (yPosition + neededSpace > 280) {
+        if (yPosition + neededSpace > 270) {
           pdf.addPage();
           yPosition = 20;
         }
       };
 
-      // Cabeçalho
-      yPosition = addText('CHECKLIST DE PLATAFORMA DE LANÇAMENTO', 20, yPosition, {
-        fontSize: 16,
-        style: 'bold'
-      });
+      // Cabeçalho com destaque
+      pdf.setFillColor(41, 98, 255); // Azul escuro
+      pdf.rect(15, 12, 180, 18, 'F');
+      pdf.setTextColor(255, 255, 255); // Texto branco
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('CHECKLIST DE PLATAFORMA DE LANÇAMENTO', 105, 24, { align: 'center' });
       
-      yPosition += 10;
+      yPosition = 40;
+      pdf.setTextColor(0, 0, 0); // Voltar ao preto
       pdf.line(20, yPosition, 190, yPosition);
       yPosition += 15;
 
-      // Informações básicas
-      yPosition = addText(`Data: ${formData.date}`, 20, yPosition);
-      yPosition += 5;
-      yPosition = addText(`Local: ${formData.localName}`, 20, yPosition);
-      yPosition += 5;
-      yPosition = addText(`Colaborador(es): ${formData.collaboratorName}`, 20, yPosition);
-      yPosition += 5;
-      yPosition = addText(`OS: ${formData.serviceOrderNumber}`, 20, yPosition);
-      yPosition += 5;
+      // Informações básicas com melhor formatação
+      yPosition = addText(`Data: ${formData.date}`, 20, yPosition, { fontSize: 13, style: 'bold' });
+      yPosition += 6;
+      yPosition = addText(`Local: ${formData.localName}`, 20, yPosition, { fontSize: 13, style: 'bold' });
+      yPosition += 6;
+      yPosition = addText(`Colaborador(es): ${formData.collaboratorName}`, 20, yPosition, { fontSize: 13, style: 'bold' });
+      yPosition += 6;
+      yPosition = addText(`OS: ${formData.serviceOrderNumber}`, 20, yPosition, { fontSize: 13, style: 'bold' });
+      yPosition += 8;
       
       if (formData.description) {
         yPosition += 5;
-        yPosition = addText('Descrição:', 20, yPosition, { style: 'bold' });
-        yPosition += 5;
+        yPosition = addText('DESCRIÇÃO:', 20, yPosition, { fontSize: 14, style: 'bold', highlight: true });
+        yPosition += 8;
         // Dividir texto longo em múltiplas linhas
         const descLines = pdf.splitTextToSize(formData.description, 170);
         for (const line of descLines) {
           checkPageBreak(15);
-          yPosition = addText(line, 20, yPosition);
+          yPosition = addText(line, 20, yPosition, { fontSize: 11 });
           yPosition += 5;
         }
       }
 
-      yPosition += 10;
+      yPosition += 15;
 
-      // Processar categorias
+      // Processar categorias com destaque aprimorado
       for (const category of formData.categories) {
         if (category.items.length === 0) continue;
 
-        checkPageBreak(30);
+        checkPageBreak(40);
         
-        // Nome da categoria
-        yPosition = addText(category.name, 20, yPosition, {
-          fontSize: 14,
-          style: 'bold'
+        // Nome da categoria com destaque
+        yPosition = addText(category.name.toUpperCase(), 20, yPosition, {
+          fontSize: 16,
+          style: 'bold',
+          highlight: true,
+          color: [0, 60, 180]
         });
-        yPosition += 10;
+        yPosition += 15;
 
         // Itens da categoria
         for (const item of category.items) {
-          checkPageBreak(25);
+          const itemHeight = item.photo ? 90 : 25;
+          checkPageBreak(itemHeight);
           
-          yPosition = addText(`${item.code} - ${item.description}`, 25, yPosition);
-          yPosition += 5;
-          yPosition = addText(`Avaliação: ${item.evaluation} | Reparo: ${item.repair}`, 30, yPosition, {
-            fontSize: 10
+          yPosition = addText(`${item.code} - ${item.description}`, 25, yPosition, { 
+            fontSize: 12, 
+            style: 'bold' 
           });
-          yPosition += 5;
+          yPosition += 6;
+          
+          yPosition = addText(`Avaliação: ${item.evaluation} | Reparo: ${item.repair}`, 30, yPosition, {
+            fontSize: 11,
+            color: item.evaluation === 'SIM' ? [200, 0, 0] : [0, 120, 0]
+          });
+          yPosition += 6;
+          
+          if (item.materiaisUtilizados) {
+            const matLines = pdf.splitTextToSize(`Materiais: ${item.materiaisUtilizados}`, 160);
+            for (const line of matLines) {
+              checkPageBreak(15);
+              yPosition = addText(line, 30, yPosition, { fontSize: 10, color: [100, 100, 100] });
+              yPosition += 5;
+            }
+          }
           
           if (item.descricaoRealizada) {
             const descLines = pdf.splitTextToSize(`Descrição realizada: ${item.descricaoRealizada}`, 160);
             for (const line of descLines) {
               checkPageBreak(15);
-              yPosition = addText(line, 30, yPosition, { fontSize: 10 });
+              yPosition = addText(line, 30, yPosition, { fontSize: 10, color: [100, 100, 100] });
               yPosition += 5;
             }
           }
           
           if (item.photo) {
-            checkPageBreak(60);
+            checkPageBreak(80);
             try {
               const img = new Image();
               img.crossOrigin = 'anonymous';
@@ -421,12 +447,13 @@ const ChecklistForm = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    // Redimensionar imagem para caber no PDF
-                    const maxWidth = 80;
-                    const maxHeight = 50;
+                    // Tamanho maior e melhor qualidade para imagens
+                    const maxWidth = 120; // Aumentado de 80 para 120
+                    const maxHeight = 80;  // Aumentado de 50 para 80
                     
                     let { width, height } = img;
                     
+                    // Manter proporção mas usar tamanhos maiores
                     if (width > maxWidth) {
                       height = (height * maxWidth) / width;
                       width = maxWidth;
@@ -437,13 +464,24 @@ const ChecklistForm = () => {
                       height = maxHeight;
                     }
                     
-                    canvas.width = width;
-                    canvas.height = height;
+                    // Usar resolução mais alta para melhor qualidade
+                    const scale = 2; // Dobrar a resolução
+                    canvas.width = width * scale;
+                    canvas.height = height * scale;
+                    
+                    ctx.scale(scale, scale);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     
                     ctx?.drawImage(img, 0, 0, width, height);
                     
-                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-                    pdf.addImage(imgData, 'JPEG', 30, yPosition, width, height);
+                    // Usar PNG para melhor qualidade
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    // Adicionar borda à imagem
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.rect(30, yPosition, width, height);
+                    pdf.addImage(imgData, 'PNG', 30, yPosition, width, height);
                     
                     resolve(true);
                   } catch (error) {
@@ -458,35 +496,43 @@ const ChecklistForm = () => {
                 img.src = item.photo;
               });
               
-              yPosition += 55;
+              yPosition += 85; // Ajustar espaçamento
             } catch (error) {
               console.warn('Erro ao adicionar imagem ao PDF:', error);
             }
           }
           
-          yPosition += 5;
+          yPosition += 8;
         }
         
-        yPosition += 10;
+        yPosition += 15;
       }
 
-      // Assinatura
+      // Assinatura com destaque aprimorado
       if (formData.signature) {
-        checkPageBreak(80);
+        checkPageBreak(90);
         
-        yPosition += 10;
-        yPosition = addText('Assinatura Digital:', 20, yPosition, {
-          fontSize: 14,
-          style: 'bold'
+        yPosition += 15;
+        yPosition = addText('ASSINATURA DIGITAL', 20, yPosition, {
+          fontSize: 16,
+          style: 'bold',
+          highlight: true,
+          color: [0, 60, 180]
         });
-        yPosition += 10;
+        yPosition += 15;
         
         try {
-          pdf.addImage(formData.signature, 'PNG', 20, yPosition, 80, 40);
-          yPosition += 45;
+          // Assinatura maior e com borda
+          pdf.setDrawColor(200, 200, 200);
+          pdf.rect(20, yPosition, 120, 60);
+          pdf.addImage(formData.signature, 'PNG', 20, yPosition, 120, 60);
+          yPosition += 65;
         } catch (error) {
           console.warn('Erro ao adicionar assinatura:', error);
-          yPosition = addText('[Assinatura não pôde ser adicionada]', 20, yPosition);
+          yPosition = addText('[Assinatura não pôde ser adicionada]', 20, yPosition, {
+            fontSize: 11,
+            color: [200, 0, 0]
+          });
           yPosition += 10;
         }
       }
