@@ -438,53 +438,58 @@ const ChecklistForm = () => {
           }
           
           if (item.photo) {
-            checkPageBreak(80);
             try {
               const img = new Image();
               img.crossOrigin = 'anonymous';
               
-              await new Promise((resolve, reject) => {
+              await new Promise((resolve) => {
                 img.onload = () => {
                   try {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    
-                    // Tamanho maior e melhor qualidade para imagens
-                    const maxWidth = 120; // Aumentado de 80 para 120
-                    const maxHeight = 80;  // Aumentado de 50 para 80
-                    
-                    let { width, height } = img;
-                    
-                    // Manter proporção mas usar tamanhos maiores
-                    if (width > maxWidth) {
-                      height = (height * maxWidth) / width;
-                      width = maxWidth;
+
+                    // Dimensões maiores (em mm) e melhor qualidade
+                    const targetMaxWidthMm = 150; // largura maior
+                    const targetMaxHeightMm = 100; // altura maior
+
+                    const naturalW = (img as HTMLImageElement).naturalWidth || img.width;
+                    const naturalH = (img as HTMLImageElement).naturalHeight || img.height;
+                    const ratio = naturalW && naturalH ? naturalW / naturalH : 1;
+
+                    let drawWidthMm = targetMaxWidthMm;
+                    let drawHeightMm = drawWidthMm / ratio;
+                    if (drawHeightMm > targetMaxHeightMm) {
+                      drawHeightMm = targetMaxHeightMm;
+                      drawWidthMm = drawHeightMm * ratio;
                     }
-                    
-                    if (height > maxHeight) {
-                      width = (width * maxHeight) / height;
-                      height = maxHeight;
+
+                    const mmToPx = (mm: number, dpi = 300) => Math.round((mm * dpi) / 25.4);
+
+                    const canvasWidth = mmToPx(drawWidthMm);
+                    const canvasHeight = mmToPx(drawHeightMm);
+
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+
+                    if (ctx) {
+                      ctx.imageSmoothingEnabled = true;
+                      ctx.imageSmoothingQuality = 'high';
+                      ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
                     }
-                    
-                    // Usar resolução mais alta para melhor qualidade
-                    const scale = 2; // Dobrar a resolução
-                    canvas.width = width * scale;
-                    canvas.height = height * scale;
-                    
-                    ctx.scale(scale, scale);
-                    ctx.imageSmoothingEnabled = true;
-                    ctx.imageSmoothingQuality = 'high';
-                    
-                    ctx?.drawImage(img, 0, 0, width, height);
-                    
-                    // Usar PNG para melhor qualidade
-                    const imgData = canvas.toDataURL('image/png');
-                    
-                    // Adicionar borda à imagem
+
+                    const imgData = canvas.toDataURL('image/png'); // PNG para nitidez
+
+                    // Garante espaço suficiente na página para a imagem calculada
+                    checkPageBreak(drawHeightMm + 20);
+
+                    // Adiciona borda e imagem no PDF usando dimensões em mm
                     pdf.setDrawColor(200, 200, 200);
-                    pdf.rect(30, yPosition, width, height);
-                    pdf.addImage(imgData, 'PNG', 30, yPosition, width, height);
-                    
+                    pdf.rect(30, yPosition, drawWidthMm, drawHeightMm);
+                    pdf.addImage(imgData, 'PNG', 30, yPosition, drawWidthMm, drawHeightMm);
+
+                    // Avança a posição Y conforme altura real da imagem
+                    yPosition += drawHeightMm + 10;
+
                     resolve(true);
                   } catch (error) {
                     console.warn('Erro ao processar imagem:', error);
@@ -495,10 +500,8 @@ const ChecklistForm = () => {
                   console.warn('Erro ao carregar imagem');
                   resolve(false);
                 };
-                img.src = item.photo;
+                img.src = item.photo!;
               });
-              
-              yPosition += 85; // Ajustar espaçamento
             } catch (error) {
               console.warn('Erro ao adicionar imagem ao PDF:', error);
             }
