@@ -303,85 +303,153 @@ const ChecklistForm = () => {
       timestamp: new Date().toISOString()
     };
 
-    // Criar elemento temporário para renderizar o conteúdo
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.width = '800px';
-    tempDiv.style.padding = '20px';
-    tempDiv.style.backgroundColor = 'white';
-    tempDiv.style.fontFamily = 'Arial, sans-serif';
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pageWidth - (margin * 2);
+    let currentY = margin;
 
-    tempDiv.innerHTML = `
-      <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px;">
-        <h1 style="margin: 0; font-size: 24px; color: #333;">Checklist de Plataforma de Lançamento</h1>
-        <p style="margin: 10px 0; color: #666;">Data: ${formData.date}</p>
-      </div>
+    // Função para adicionar nova página
+    const addNewPage = () => {
+      pdf.addPage();
+      currentY = margin;
+    };
+
+    // Função para verificar se precisa de nova página
+    const checkPageBreak = (neededHeight: number) => {
+      if (currentY + neededHeight > pageHeight - margin) {
+        addNewPage();
+      }
+    };
+
+    // Função para renderizar seção e retornar altura
+    const renderSection = async (htmlContent: string, minHeight = 30) => {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.width = '750px';
+      tempDiv.style.padding = '15px';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+      tempDiv.innerHTML = htmlContent;
       
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
-        <div><strong>Local:</strong> ${formData.localName}</div>
-        <div><strong>Colaborador(es):</strong> ${formData.collaboratorName}</div>
-        <div><strong>OS:</strong> ${formData.serviceOrderNumber}</div>
-        <div><strong>Data/Hora:</strong> ${new Date(formData.timestamp).toLocaleString('pt-BR')}</div>
-      </div>
-
-      ${formData.description ? `<div style="margin-bottom: 20px;"><strong>Descrição:</strong><br>${formData.description}</div>` : ''}
-
-      ${formData.categories.map(category => `
-        <div style="margin-bottom: 30px;">
-          <h3 style="background: #f0f0f0; padding: 10px; margin: 0 0 10px 0; font-size: 18px;">${category.name}</h3>
-          ${category.items.map(item => `
-            <div style="border-bottom: 1px solid #ddd; padding: 10px;">
-              <strong>${item.code}</strong> - ${item.description}<br>
-              <small style="color: #666;">Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
-              ${item.materiaisUtilizados ? `<br><small style="color: #666;"><strong>Materiais utilizados:</strong> ${item.materiaisUtilizados}</small>` : ''}
-              ${item.descricaoRealizada ? `<br><small style="color: #666;"><strong>Descrição do que foi realizado:</strong> ${item.descricaoRealizada}</small>` : ''}
-              ${item.photo ? `<br><img src="${item.photo}" alt="Foto do item ${item.code}" style="max-width: 300px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px;" />` : ''}
-            </div>
-          `).join('')}
-        </div>
-      `).join('')}
-
-      ${formData.signature ? `
-        <div style="margin-top: 30px; text-align: center;">
-          <h3 style="margin-bottom: 10px;">Assinatura Digital</h3>
-          <img src="${formData.signature}" alt="Assinatura" style="max-width: 300px; border: 1px solid #ddd;" />
-        </div>
-      ` : ''}
-    `;
-
-    document.body.appendChild(tempDiv);
+      document.body.appendChild(tempDiv);
+      
+      try {
+        const canvas = await html2canvas(tempDiv, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = contentWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Verificar se precisa quebrar página
+        checkPageBreak(Math.max(imgHeight, minHeight));
+        
+        pdf.addImage(imgData, 'PNG', margin, currentY, imgWidth, imgHeight);
+        currentY += imgHeight + 5; // pequeno espaço entre seções
+        
+        return imgHeight;
+      } finally {
+        document.body.removeChild(tempDiv);
+      }
+    };
 
     try {
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
+      // 1. Cabeçalho
+      await renderSection(`
+        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 24px; color: #333;">Checklist de Plataforma de Lançamento</h1>
+          <p style="margin: 10px 0; color: #666;">Data: ${formData.date}</p>
+        </div>
+      `);
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      // Calcular dimensões
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth - 20; // margem de 10mm de cada lado
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 10; // margem superior
+      // 2. Informações do formulário
+      await renderSection(`
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          <div><strong>Local:</strong> ${formData.localName}</div>
+          <div><strong>Colaborador(es):</strong> ${formData.collaboratorName}</div>
+          <div><strong>OS:</strong> ${formData.serviceOrderNumber}</div>
+          <div><strong>Data/Hora:</strong> ${new Date(formData.timestamp).toLocaleString('pt-BR')}</div>
+        </div>
+        ${formData.description ? `<div style="margin-bottom: 15px;"><strong>Descrição:</strong><br>${formData.description}</div>` : ''}
+      `);
 
-      // Adicionar primeira página
-      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-      heightLeft -= (pdfHeight - 20);
+      // 3. Cada categoria separadamente
+      for (const category of formData.categories) {
+        // Verificar se a categoria tem itens
+        if (category.items.length === 0) continue;
 
-      // Adicionar páginas adicionais se necessário
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight + 10;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= (pdfHeight - 20);
+        // Cabeçalho da categoria
+        checkPageBreak(40);
+        await renderSection(`
+          <div style="margin-bottom: 15px;">
+            <h3 style="background: #f0f0f0; padding: 12px; margin: 0; font-size: 18px; border-radius: 5px;">${category.name}</h3>
+          </div>
+        `, 40);
+
+        // Processar itens da categoria em pequenos grupos para evitar quebras no meio
+        const itemsPerGroup = 3;
+        for (let i = 0; i < category.items.length; i += itemsPerGroup) {
+          const itemGroup = category.items.slice(i, i + itemsPerGroup);
+          
+          const groupHtml = `
+            <div style="margin-bottom: 15px;">
+              ${itemGroup.map(item => `
+                <div style="border: 1px solid #e0e0e0; border-radius: 5px; padding: 12px; margin-bottom: 10px; background: #fafafa;">
+                  <div style="margin-bottom: 8px;">
+                    <strong style="color: #333;">${item.code}</strong> - ${item.description}
+                  </div>
+                  <div style="margin-bottom: 5px;">
+                    <small style="color: #666; background: #e8f4f8; padding: 2px 8px; border-radius: 3px; margin-right: 10px;">
+                      Avaliação: ${item.evaluation}
+                    </small>
+                    <small style="color: #666; background: #f0f8e8; padding: 2px 8px; border-radius: 3px;">
+                      Reparo: ${item.repair}
+                    </small>
+                  </div>
+                  ${item.descricaoRealizada ? `
+                    <div style="margin: 8px 0; padding: 8px; background: #fff; border-left: 3px solid #4CAF50; border-radius: 3px;">
+                      <small style="color: #555;"><strong>Descrição realizada:</strong> ${item.descricaoRealizada}</small>
+                    </div>
+                  ` : ''}
+                  ${item.photo ? `
+                    <div style="margin-top: 10px; text-align: center;">
+                      <img src="${item.photo}" alt="Foto do item ${item.code}" 
+                           style="max-width: 280px; max-height: 200px; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" />
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
+            </div>
+          `;
+
+          // Estimar altura mínima baseada no conteúdo
+          const hasPhotos = itemGroup.some(item => item.photo);
+          const minHeight = hasPhotos ? 150 : 80;
+          
+          await renderSection(groupHtml, minHeight);
+        }
+      }
+
+      // 4. Assinatura (se existe)
+      if (formData.signature) {
+        // Garantir que a assinatura não seja cortada
+        checkPageBreak(120);
+        await renderSection(`
+          <div style="margin-top: 30px; text-align: center; page-break-inside: avoid;">
+            <h3 style="margin-bottom: 15px; color: #333;">Assinatura Digital</h3>
+            <div style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; background: #fafafa;">
+              <img src="${formData.signature}" alt="Assinatura" 
+                   style="max-width: 280px; max-height: 100px; border: 1px solid #ccc; border-radius: 5px;" />
+            </div>
+          </div>
+        `, 120);
       }
 
       pdf.save(`checklist-${formData.date}-${formData.serviceOrderNumber}.pdf`);
@@ -390,8 +458,6 @@ const ChecklistForm = () => {
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       toast.error('Erro ao gerar PDF. Tente novamente.');
-    } finally {
-      document.body.removeChild(tempDiv);
     }
   };
 
