@@ -323,7 +323,9 @@ const ChecklistForm = () => {
         pdf.setFontSize(fontSize);
         pdf.setFont('helvetica', style);
         
-        if (options.color) {
+        if (options.color && Array.isArray(options.color)) {
+          pdf.setTextColor(options.color[0], options.color[1], options.color[2]);
+        } else if (options.color) {
           pdf.setTextColor(options.color);
         } else {
           pdf.setTextColor(0, 0, 0);
