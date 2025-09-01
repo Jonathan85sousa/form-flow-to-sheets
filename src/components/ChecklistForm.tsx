@@ -19,6 +19,7 @@ interface ChecklistItem {
   evaluation: string;
   repair: string;
   photo?: string;
+  evaluationPhoto?: string;
   materiaisUtilizados?: string;
   descricaoRealizada?: string;
 }
@@ -266,7 +267,8 @@ const ChecklistForm = () => {
                          <small>Avaliação: ${item.evaluation} | Reparo: ${item.repair}</small>
                           ${item.materiaisUtilizados ? `<br><small><strong>Materiais utilizados:</strong> ${item.materiaisUtilizados}</small>` : ''}
                           ${item.descricaoRealizada ? `<br><small><strong>Descrição do que foi realizado:</strong> ${item.descricaoRealizada}</small>` : ''}
-                          ${item.photo ? `<br><img src="${item.photo}" alt="Foto do item ${item.code}" class="item-photo" />` : ''}
+                         ${item.evaluationPhoto ? `<br><img src="${item.evaluationPhoto}" alt="Foto da avaliação ${item.code}" class="item-photo" />` : ''}
+                         ${item.photo ? `<br><img src="${item.photo}" alt="Foto do reparo ${item.code}" class="item-photo" />` : ''}
                      </div>
                  `).join('')}
             </div>
@@ -437,6 +439,84 @@ const ChecklistForm = () => {
             }
           }
           
+          if (item.evaluationPhoto) {
+            try {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              
+              await new Promise((resolve) => {
+                img.onload = () => {
+                  try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Dimensões maiores (em mm) e melhor qualidade
+                    const targetMaxWidthMm = 150; // largura maior
+                    const targetMaxHeightMm = 100; // altura maior
+
+                    const naturalW = (img as HTMLImageElement).naturalWidth || img.width;
+                    const naturalH = (img as HTMLImageElement).naturalHeight || img.height;
+                    const ratio = naturalW && naturalH ? naturalW / naturalH : 1;
+
+                    let drawWidthMm = targetMaxWidthMm;
+                    let drawHeightMm = drawWidthMm / ratio;
+                    if (drawHeightMm > targetMaxHeightMm) {
+                      drawHeightMm = targetMaxHeightMm;
+                      drawWidthMm = drawHeightMm * ratio;
+                    }
+
+                    const mmToPx = (mm: number, dpi = 300) => Math.round((mm * dpi) / 25.4);
+
+                    const canvasWidth = mmToPx(drawWidthMm);
+                    const canvasHeight = mmToPx(drawHeightMm);
+
+                    canvas.width = canvasWidth;
+                    canvas.height = canvasHeight;
+
+                    if (ctx) {
+                      ctx.imageSmoothingEnabled = true;
+                      ctx.imageSmoothingQuality = 'high';
+                      ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+                    }
+
+                    const imgData = canvas.toDataURL('image/png'); // PNG para nitidez
+
+                    // Garante espaço suficiente na página para a imagem calculada
+                    checkPageBreak(drawHeightMm + 20);
+
+                    // Label para foto de avaliação
+                    yPosition = addText('Foto da Avaliação:', 30, yPosition, { 
+                      fontSize: 11, 
+                      style: 'bold',
+                      color: [0, 120, 0]
+                    });
+                    yPosition += 8;
+
+                    // Adiciona borda e imagem no PDF usando dimensões em mm
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.rect(30, yPosition, drawWidthMm, drawHeightMm);
+                    pdf.addImage(imgData, 'PNG', 30, yPosition, drawWidthMm, drawHeightMm);
+
+                    // Avança a posição Y conforme altura real da imagem
+                    yPosition += drawHeightMm + 10;
+
+                    resolve(true);
+                  } catch (error) {
+                    console.warn('Erro ao processar imagem de avaliação:', error);
+                    resolve(false);
+                  }
+                };
+                img.onerror = () => {
+                  console.warn('Erro ao carregar imagem de avaliação');
+                  resolve(false);
+                };
+                img.src = item.evaluationPhoto!;
+              });
+            } catch (error) {
+              console.warn('Erro ao adicionar imagem de avaliação ao PDF:', error);
+            }
+          }
+          
           if (item.photo) {
             try {
               const img = new Image();
@@ -481,6 +561,14 @@ const ChecklistForm = () => {
 
                     // Garante espaço suficiente na página para a imagem calculada
                     checkPageBreak(drawHeightMm + 20);
+
+                    // Label para foto de reparo
+                    yPosition = addText('Foto do Reparo:', 30, yPosition, { 
+                      fontSize: 11, 
+                      style: 'bold',
+                      color: [0, 60, 180]
+                    });
+                    yPosition += 8;
 
                     // Adiciona borda e imagem no PDF usando dimensões em mm
                     pdf.setDrawColor(200, 200, 200);

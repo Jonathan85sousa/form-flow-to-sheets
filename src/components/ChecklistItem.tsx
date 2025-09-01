@@ -12,6 +12,7 @@ interface ChecklistItemType {
   evaluation: string;
   repair: string;
   photo?: string;
+  evaluationPhoto?: string;
   materiaisUtilizados?: string;
   descricaoRealizada?: string;
 }
@@ -62,12 +63,30 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
     }
   };
 
+  const handleEvaluationPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const updatedItem = { ...item, evaluationPhoto: e.target?.result as string };
+        onUpdate(updatedItem);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const removePhoto = () => {
     const updatedItem = { ...item, photo: undefined };
     onUpdate(updatedItem);
   };
 
-  const showPhotoOption = item.evaluation === 'SIM' && item.repair === 'SIM';
+  const removeEvaluationPhoto = () => {
+    const updatedItem = { ...item, evaluationPhoto: undefined };
+    onUpdate(updatedItem);
+  };
+
+  const showRepairPhotoOption = item.evaluation === 'SIM' && item.repair === 'SIM';
+  const showEvaluationPhotoOption = item.evaluation === 'SIM';
 
   return (
     <>
@@ -164,7 +183,59 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
         </td>
       </tr>
       
-      {showPhotoOption && (
+      {showEvaluationPhotoOption && (
+        <tr className="border-b bg-green-50">
+          <td className="px-4 py-2"></td>
+          <td className="px-4 py-2 text-sm text-green-700 font-medium">
+            Foto da Avaliação:
+          </td>
+          <td colSpan={3} className="px-4 py-2">
+            <div className="flex items-center gap-2">
+              {item.evaluationPhoto ? (
+                <div className="flex items-center gap-2">
+                  <img 
+                    src={item.evaluationPhoto} 
+                    alt="Foto da avaliação" 
+                    className="h-12 w-12 object-cover rounded border"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={removeEvaluationPhoto}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Remover
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleEvaluationPhotoUpload}
+                    className="hidden"
+                    id={`evaluation-photo-${item.id}`}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => document.getElementById(`evaluation-photo-${item.id}`)?.click()}
+                    className="text-green-600 hover:text-green-700"
+                  >
+                    <Camera className="h-3 w-3 mr-1" />
+                    Adicionar Foto
+                  </Button>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+
+      {showRepairPhotoOption && (
         <>
           <tr className="border-b bg-blue-50">
             <td className="px-4 py-2"></td>
@@ -203,7 +274,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
           <tr className="border-b bg-blue-50">
             <td className="px-4 py-2"></td>
             <td className="px-4 py-2 text-sm text-blue-700 font-medium">
-              Foto do Item:
+              Foto do Reparo:
             </td>
             <td colSpan={3} className="px-4 py-2">
               <div className="flex items-center gap-2">
@@ -211,7 +282,7 @@ const ChecklistItem: React.FC<ChecklistItemProps> = ({
                   <div className="flex items-center gap-2">
                     <img 
                       src={item.photo} 
-                      alt="Item foto" 
+                      alt="Foto do reparo" 
                       className="h-12 w-12 object-cover rounded border"
                     />
                     <Button
