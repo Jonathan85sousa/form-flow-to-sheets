@@ -37,6 +37,7 @@ const ChecklistForm = () => {
   const [collaboratorName, setCollaboratorName] = useState('');
   const [serviceOrderNumber, setServiceOrderNumber] = useState('');
   const [description, setDescription] = useState('');
+  const [titleType, setTitleType] = useState<'lançamento' | 'chegada'>('lançamento');
   
   const [categories, setCategories] = useState<Category[]>([
     {
@@ -221,7 +222,7 @@ const ChecklistForm = () => {
     </head>
     <body>
         <div class="header">
-            <h1>Checklist de Plataforma de Lançamento</h1>
+            <h1>Checklist de Plataforma de ${titleType === 'lançamento' ? 'Lançamento' : 'Chegada'}</h1>
             <p>Data: ${formData.date}</p>
         </div>
         
@@ -334,7 +335,7 @@ const ChecklistForm = () => {
       pdf.setTextColor(255, 255, 255); // Texto branco
       pdf.setFontSize(18);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('CHECKLIST DE PLATAFORMA DE LANÇAMENTO', 105, 24, { align: 'center' });
+      pdf.text(`CHECKLIST DE PLATAFORMA DE ${titleType.toUpperCase()}`, 105, 24, { align: 'center' });
       
       yPosition = 40;
       pdf.setTextColor(0, 0, 0); // Voltar ao preto
@@ -623,9 +624,21 @@ const ChecklistForm = () => {
   return (
     <Card className="max-w-6xl mx-auto shadow-2xl">
       <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-        <CardTitle className="text-2xl text-center">
-          Checklist de Plataforma de Lançamento
-        </CardTitle>
+        <div className="flex items-center justify-between mb-4">
+          <Button
+            type="button"
+            onClick={() => setTitleType(titleType === 'lançamento' ? 'chegada' : 'lançamento')}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+          >
+            Alternar para {titleType === 'lançamento' ? 'Chegada' : 'Lançamento'}
+          </Button>
+          <CardTitle className="text-2xl text-center flex-1">
+            Checklist de Plataforma de {titleType === 'lançamento' ? 'Lançamento' : 'Chegada'}
+          </CardTitle>
+          <div className="w-[120px]"></div> {/* Spacer for alignment */}
+        </div>
         <p className="text-center text-blue-100 text-sm">
           Funciona completamente offline
         </p>
@@ -734,7 +747,7 @@ const ChecklistForm = () => {
           <div className="mt-8 bg-blue-50 p-6 rounded-lg border-2 border-blue-200">
             <div className="text-center mb-4">
               <h3 className="text-lg font-bold text-blue-800 mb-2">
-                Assinatura do Cliente
+                Assinatura do Executante
               </h3>
               <p className="text-sm text-blue-600">
                 Por favor, assine abaixo para confirmar a realização dos serviços
@@ -747,15 +760,6 @@ const ChecklistForm = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-            <Button
-              type="button"
-              onClick={loadSavedData}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Ver Salvos
-            </Button>
 
             <Button
               type="button"
