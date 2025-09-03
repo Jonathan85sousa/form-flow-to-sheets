@@ -184,30 +184,6 @@ const ChecklistForm = () => {
     saveToLocalStorage();
   };
 
-  const exportToJson = () => {
-    const formData = {
-      date,
-      localName,
-      collaboratorName,
-      serviceOrderNumber,
-      description,
-      categories,
-      signature,
-      timestamp: new Date().toISOString()
-    };
-    
-    const dataStr = JSON.stringify(formData, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `checklist-${date}-${serviceOrderNumber}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    toast.success('Arquivo JSON exportado com sucesso!');
-  };
 
   const exportToHtml = () => {
     const formData = {
@@ -782,12 +758,12 @@ const ChecklistForm = () => {
 
             <Button
               type="button"
-              onClick={exportToJson}
+              onClick={() => window.open('/formularios', '_blank')}
               variant="outline"
               className="flex items-center gap-2"
             >
-              <Download className="h-4 w-4" />
-              Exportar JSON
+              <FileText className="h-4 w-4" />
+              Gerenciar Formulários
             </Button>
 
             <Button
