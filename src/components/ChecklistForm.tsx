@@ -31,6 +31,7 @@ interface Category {
 }
 
 const ChecklistForm = () => {
+  // Force cache refresh by adding comment
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [localName, setLocalName] = useState('');
   const [collaboratorName, setCollaboratorName] = useState('');
