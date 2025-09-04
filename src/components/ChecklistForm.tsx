@@ -108,6 +108,18 @@ const ChecklistForm = () => {
         { id: '6-5', code: '6.5', description: 'Barra roscada com oxidação Superficial', evaluation: 'NÃO', repair: 'NÃO' },
         { id: '6-6', code: '6.6', description: 'Barra roscada com oxidação corrosiva', evaluation: 'NÃO', repair: 'NÃO' },
       ]
+    },
+    {
+      id: '7',
+      name: 'Teste',
+      items: [
+        { id: '7-1', code: '7.1', description: 'Madeira deteriorada', evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '7-2', code: '7.2', description: 'Rachadura na trave', evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '7-3', code: '7.3', description: 'Presença de Cupins', evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '7-4', code: '7.4', description: 'Barra roscadas tortas', evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '7-5', code: '7.5', description: 'Barra roscada com oxidação Superficial', evaluation: 'NÃO', repair: 'NÃO' },
+        { id: '7-6', code: '7.6', description: 'Barra roscada com oxidação corrosiva', evaluation: 'NÃO', repair: 'NÃO' },
+      ]
     }
   ]);
   const [signature, setSignature] = useState<string>('');
